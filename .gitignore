@@ -1,0 +1,12 @@
+.idea/
+.venv/
+__pycache__/
+data/
+logs/
+*.log
+fit_parsing.py
+Garmin.csv
+gpx_parsing.py
+runs_data.db
+stryd_matched_with_workout.csv
+StryFitFields.txt
