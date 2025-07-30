@@ -1,5 +1,5 @@
 import logging
-from schema_db import connect_db, init_db, run_exists
+from db_schema import connect_db, init_db, run_exists
 from batch_import import batch_process_stryd_folder
 from config import DB_PATH, STRYD_FOLDER, GARMIN_CSV_PATH
 
