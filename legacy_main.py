@@ -1,7 +1,7 @@
 import logging
-from schema_db import connect_db, init_db, run_exists
+from db_schema import connect_db, init_db, run_exists
 from batch_import import batch_process_stryd_folder
-from config import DB_PATH, STRYD_FOLDER, GARMIN_CSV_PATH
+from config import DB_PATH, STRYD_FOLDER, GARMIN_CSV_FILE
 
 
 
@@ -20,7 +20,7 @@ def main():
     init_db(conn)
 
     # 2. Batch process all Stryd files in folder
-    batch_process_stryd_folder(STRYD_FOLDER, GARMIN_CSV_PATH, conn)
+    batch_process_stryd_folder(STRYD_FOLDER, GARMIN_CSV_FILE, conn)
 
     # 3. Cleanup
     conn.close()

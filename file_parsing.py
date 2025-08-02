@@ -1,19 +1,19 @@
 import logging
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import timedelta
 from zoneinfo import ZoneInfo
-import tzlocal
+
 
 def load_csv(stryd_csv, garmin_csv):
     stryd_df = pd.read_csv(stryd_csv)
     garmin_df = pd.read_csv(garmin_csv)
     return stryd_df, garmin_df
 
-def edit_stryd_csv(df):
-    # Convert Unix timestamps to local time
+def edit_stryd_csv(df, timezone_str):
+    # Convert Unix timestamps to local time using user-specified timezone
     df['Local Timestamp'] = pd.to_datetime(
         df['Timestamp'], unit='s', utc=True
-    ).dt.tz_convert(ZoneInfo(tzlocal.get_localzone_name()))
+    ).dt.tz_convert(ZoneInfo(timezone_str))
 
     # Move the Local Timestamp to the first column
     cols = ['Local Timestamp'] + [col for col in df.columns if col != 'Local Timestamp']
@@ -29,23 +29,25 @@ def edit_stryd_csv(df):
 
 
 def normalize_workout_type(raw_name):
-    name = raw_name.lower()
-    if "ez" in name or "easy" in name:
+    if isinstance(raw_name, pd.Series):
+        raw_name = raw_name.iloc[0]
+    name = str(raw_name).lower()
+    if "EZ" in name or "Easy" in name:
         return "Easy Run"
-    elif "long" in name:
+    elif "Long" in name:
         return "Long Run"
-    elif "threshold" in name:
-        return "Threshold"
-    elif "vo2" in name:
-        return "VO2 Max"
-    elif "race" in name:
+    elif "Threshold" or "VO2" or "Intervals" in name:
+        return "Intervals"
+    elif "Test" or "Testing" or "Trial" or "TT" in name:
+        return "Testing"
+    elif "Race" in name:
         return "Race"
     else:
         return "Other"
 
 
-def match_workout_name(stryd_df, garmin_df):
-    local_tz = ZoneInfo(tzlocal.get_localzone_name())
+def match_workout_name(stryd_df, garmin_df, timezone_str):
+    local_tz = ZoneInfo(timezone_str)
 
     stryd_start_time = stryd_df.loc[0, 'Local Timestamp']
 
