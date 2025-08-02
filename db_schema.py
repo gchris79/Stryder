@@ -4,14 +4,9 @@ import pandas as pd
 
 
 def connect_db(db_path):
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(str(db_path))
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
-
-    conn.commit()
-    conn.close()
-    logging.info("✅ Database initialized.")
-
 
 def init_db(conn):
     cur = conn.cursor()
@@ -61,7 +56,6 @@ def init_db(conn):
 
     conn.commit()
     logging.info("✅ Database initialized.")
-
 
 
 def insert_workout(workout_name, notes, workout_type_id, conn):
