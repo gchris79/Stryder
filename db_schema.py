@@ -1,6 +1,7 @@
 import logging
 import sqlite3
 import pandas as pd
+from zoneinfo import ZoneInfo
 
 
 def connect_db(db_path):
@@ -88,16 +89,24 @@ def run_exists(conn, start_time_str):
 
 
 def insert_run(workout_id, start_time, duration_sec, avg_hr, conn):
-    cur = conn.cursor()
 
-    start_time_str = start_time.isoformat(sep=' ', timespec='seconds')  # -> "2023-08-20 07:20:00"
+        cur = conn.cursor()
 
-    cur.execute('''INSERT INTO runs 
-                (workout_id, datetime, duration_sec, avg_hr)
-                VALUES (?, ?, ?, ?)''',(workout_id, start_time_str, duration_sec, avg_hr)
-                )
-    conn.commit()
-    return cur.lastrowid
+        # Ensure start_time is stored in UTC
+        if start_time.tzinfo is not None:
+            start_time = start_time.astimezone(ZoneInfo("UTC"))
+        else:
+            start_time = start_time.replace(tzinfo=ZoneInfo("UTC"))
+
+        start_time_str = start_time.isoformat(sep=' ', timespec='seconds')
+
+        cur.execute('''INSERT INTO runs 
+                    (workout_id, datetime, duration_sec, avg_hr)
+                    VALUES (?, ?, ?, ?)''',
+                    (workout_id, start_time_str, duration_sec, avg_hr))
+
+        conn.commit()
+        return cur.lastrowid
 
 
 def insert_metrics(run_id, df, conn):

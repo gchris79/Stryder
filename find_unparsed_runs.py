@@ -10,6 +10,7 @@ from utils import convert_first_timestamp_to_str, get_paths_with_prompt, interac
 def get_existing_datetimes(conn):
     cur = conn.cursor()
     cur.execute("SELECT datetime FROM runs")
+
     return {row[0] for row in cur.fetchall()}
 
 
@@ -23,7 +24,6 @@ def main():
 
     unparsed = []
     total_files = 0
-
 
     for file in folder.glob("*.csv"):
         total_files += 1
@@ -39,10 +39,9 @@ def main():
     print(f"✅ Parsed files in DB: {total_files - len(unparsed)}")
     print(f"❗ Unparsed files: {len(unparsed)}")
 
-    # Now parse interactively
     parsed_count = 0
     skipped_count = 0
-    total_files = len(unparsed)
+    total_unparsed = len(unparsed)
 
     for file in unparsed:
         full_path = folder / file
@@ -57,11 +56,11 @@ def main():
             print(f"🔢 Total attempted: {parsed_count + skipped_count}")
             print(f"✅ Parsed: {parsed_count}")
             print(f"⏭️ Skipped: {skipped_count}")
-            print(f"👋 Exited early before completing all {total_files} files.")
+            print(f"👋 Exited early before completing all {total_unparsed} files.")
             return
 
     print("\n🧾 Parsing complete.")
-    print(f"🔢 Total unparsed files: {total_files}")
+    print(f"🔢 Total unparsed files: {total_unparsed}")
     print(f"✅ Parsed: {parsed_count}")
     print(f"⏭️ Skipped: {skipped_count}")
 

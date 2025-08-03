@@ -1,11 +1,11 @@
 import pandas as pd
 import logging
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from path_memory import load_last_used_paths, save_last_used_paths
 from pipeline import process_csv_pipeline, insert_full_run
-
+from db_schema import run_exists
 
 def prompt_yes_no(prompt_msg, default=True):
     # Prompt the user for a yes/no input. Returns True for yes, False for no.
@@ -38,11 +38,22 @@ def prompt_for_timezone(file_name=None):
 
 
 def convert_first_timestamp_to_str(file_path, tz):
+    """
+        Extracts the first timestamp from a Stryd CSV file and returns it
+        as a UTC ISO string (used for DB comparison).
+        """
     df = pd.read_csv(file_path)
+
     if 'Timestamp' not in df.columns or df['Timestamp'].empty:
         raise ValueError("Missing or empty 'Timestamp' column")
+
+    # Step 1: Convert from Unix to UTC
     ts = pd.to_datetime(df['Timestamp'].iloc[0], unit='s', utc=True)
-    local_ts = ts.tz_convert(tz)
+
+    # Step 2: Convert to local time then to UTC again (to match DB insert logic)
+    local_ts = ts.tz_convert(tz).astimezone(ZoneInfo("UTC"))
+
+    # Step 3: Return as string
     return local_ts.isoformat(sep=' ', timespec='seconds')
 
 
@@ -102,6 +113,20 @@ def interactive_run_insert(stryd_file, garmin_file, conn):
 
         try:
             stryd_df, _, _, workout_name = process_csv_pipeline(stryd_file, garmin_file, timezone_str)
+
+            # Convert to UTC and generate DB timestamp key
+            start_time = stryd_df["Local Timestamp"].iloc[0]
+            if start_time.tzinfo is not None:
+                start_time = start_time.astimezone(ZoneInfo("UTC"))
+            else:
+                start_time = start_time.replace(tzinfo=ZoneInfo("UTC"))
+            start_time_str = start_time.isoformat(sep=' ', timespec='seconds')
+
+            # Check the DB to avoid re-inserts
+            if run_exists(conn, start_time_str):
+                logging.info(f"⚠️ Already in DB: {stryd_file.name} ({start_time_str})")
+                return False
+
         except Exception as e:
             logging.error(f"❌ Failed to process {stryd_file}: {e}")
             return False
