@@ -91,7 +91,7 @@ python Stryder_CLI.py --help
 
 ---
 
-🛠 Tech Stack
+## 🛠 Tech Stack
 Python 3.9+
 
 pandas
@@ -121,7 +121,7 @@ These are planned or possible features for future versions of Stryder:
 - [ ] Optional GUI (e.g., Streamlit or PyQt)
 - [ ] Export to Excel or CSV with filters
 
-👤 Author
+## 👤 Author
 Giorgos Chrysopoulos
 Beginner Python Developer & Hobbyist Runner
 🔗 [LinkedIn](https://www.linkedin.com/in/giorgos-chrisopoulos-277989374/)
