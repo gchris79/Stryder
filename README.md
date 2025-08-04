@@ -124,11 +124,12 @@ These are planned or possible features for future versions of Stryder:
 
 ## 👤 Author
 Giorgos Chrysopoulos
-Beginner Python Developer & Hobbyist Runner
-🔗 [LinkedIn](https://www.linkedin.com/in/giorgos-chrisopoulos-277989374/)
-💡 Want to contribute? Open an issue or fork the repo!
 
----
+Beginner Python Developer & Hobbyist Runner
+
+🔗 [LinkedIn](https://www.linkedin.com/in/giorgos-chrisopoulos-277989374/)
+
+💡 Want to contribute? Open an issue or fork the repo!
 
 ---
 
