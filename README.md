@@ -89,6 +89,7 @@ python Stryder_CLI.py find-unparsed
 # CLI Help
 python Stryder_CLI.py --help
 
+```
 ---
 
 ## 🛠 Tech Stack
