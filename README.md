@@ -59,9 +59,13 @@ It will be named something like:
 🌀 Stryder CLI v1.1.1
 
 ✅ Parsed files in DB: 287
+
 ❗ Unparsed files: 15
+
 🌍 Timezone for 5151xxxx.csv: Europe/Athens
+
 ✅ Match found: "Evening Run" at 2023-06-22 19:25:00+03:00
+
 ✅ Run saved: Workout ID 103, Run ID 195
 
 
