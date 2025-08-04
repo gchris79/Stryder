@@ -54,35 +54,50 @@ It will be named something like:
 
 ---
 
-## 🧰 Requirements
+## 🖥️ Example CLI Output
 
-- Python 3.9+
-- `pandas`
-- `tzlocal`
+🌀 Stryder CLI v1.1.1
 
-Install dependencies with:
+✅ Parsed files in DB: 287
+❗ Unparsed files: 15
+🌍 Timezone for 5151xxxx.csv: Europe/Athens
+✅ Match found: "Evening Run" at 2023-06-22 19:25:00+03:00
+✅ Run saved: Workout ID 103, Run ID 195
 
-```bash
-pip install -r requirements.txt
-```
-
-## 🏁 Getting Started
-Initialize the database:
--> python Stryder_CLI.py init-db
-
-Batch import your Stryd runs:
--> python Stryder_CLI.py add-batch
-
-Review unmatched runs later:
--> python Stryder_CLI.py find-unparsed
-
-Other commands:
--> python Stryder_CLI.py --help
 
 ---
 
-## 📃 License
-MIT License — see the [LICENSE](LICENSE) file.
+## ▶️ Getting Started
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Initialize the database
+python Stryder_CLI.py init-db
+
+# Batch import Stryd folder + Garmin file
+python Stryder_CLI.py add-batch
+
+# Review unmatched runs
+python Stryder_CLI.py find-unparsed
+
+# CLI Help
+python Stryder_CLI.py --help
+
+---
+
+🛠 Tech Stack
+Python 3.9+
+
+pandas
+
+SQLite
+
+tzlocal
+
+argparse, pathlib, logging
+
 
 ---
 
@@ -102,4 +117,17 @@ These are planned or possible features for future versions of Stryder:
 - [ ] Optional GUI (e.g., Streamlit or PyQt)
 - [ ] Export to Excel or CSV with filters
 
+👤 Author
+Giorgos Chrysopoulos
+Beginner Python Developer & Hobbyist Runner
+🔗 [LinkedIn](https://www.linkedin.com/in/giorgos-chrisopoulos-277989374/)
 💡 Want to contribute? Open an issue or fork the repo!
+
+---
+
+---
+
+## 📃 License
+MIT License — see the [LICENSE](LICENSE) file.
+
+
