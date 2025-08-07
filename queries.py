@@ -1,4 +1,5 @@
 import pandas as pd
+from tabulate import tabulate
 
 from config import DB_PATH
 from db_schema import connect_db
@@ -25,7 +26,7 @@ def print_df_format(df):
         df['duration'] = df['duration'].apply(lambda td: f"{int(td.total_seconds() // 3600):02}:{int(td.total_seconds() % 3600 // 60):02}:{int(td.total_seconds() % 60):02}")
         df.drop(columns='duration_sec', inplace=True)
 
-    print(df)
+    print(tabulate(df, headers='keys', tablefmt='pretty', showindex=False))
 
 
 def get_base_workouts_query():
