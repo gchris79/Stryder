@@ -1,1 +1,0 @@
-1.0 - Initial CLI version with batch import, timezone handling, and Garmin matching

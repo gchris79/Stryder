@@ -2,6 +2,7 @@ import logging
 import sqlite3
 import pandas as pd
 from zoneinfo import ZoneInfo
+from datetime import datetime
 
 
 def connect_db(db_path):
@@ -79,7 +80,20 @@ def get_or_create_workout_type(workout_type_name, conn):
         return cur.lastrowid
 
 
-def run_exists(conn, start_time_str):
+def run_exists(conn, start_time):
+    # Ensure datetime object
+    if isinstance(start_time, str):
+        start_time = datetime.fromisoformat(start_time)
+
+    # Convert to UTC if it's timezone-aware
+    if start_time.tzinfo is not None:
+        start_time = start_time.astimezone(ZoneInfo("UTC"))
+
+    # Format as stored in DB
+    start_time_str = start_time.isoformat(sep=' ', timespec='seconds')
+
+
+
     cur = conn.cursor()
     result = cur.execute(
         "SELECT id FROM runs WHERE datetime = ?",

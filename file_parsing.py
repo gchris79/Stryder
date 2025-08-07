@@ -32,17 +32,18 @@ def normalize_workout_type(raw_name):
     if isinstance(raw_name, pd.Series):
         raw_name = raw_name.iloc[0]
     name = str(raw_name).lower()
-    if "EZ" in name or "Easy" in name:
+    if "ez" in name or "easy" in name:
         return "Easy Run"
-    elif "Long" in name:
+    elif "long" in name:
         return "Long Run"
-    elif "Threshold" or "VO2" or "Intervals" in name:
+    elif "threshold" in name or "vo2" in name or "intervals" in name:
         return "Intervals"
-    elif "Test" or "Testing" or "Trial" or "TT" in name:
+    elif "test" in name or "testing" in name or "trial" in name or "tt" in name:
         return "Testing"
-    elif "Race" in name:
+    elif "race" in name:
         return "Race"
     else:
+        logging.warning(f"❓ Unknown workout type for: {raw_name}")
         return "Other"
 
 
@@ -71,17 +72,18 @@ def match_workout_name(stryd_df, garmin_df, timezone_str):
         garmin_time = row.Date
 
         delta = abs(garmin_time - stryd_start_time)
-        logging.debug(f"Comparing Stryd: {stryd_start_time} vs Garmin: {garmin_time} → Δ {delta}")
-
+        garmin_df.columns = garmin_df.columns.str.strip() # added now
         if delta <= tolerance:
             matched_title = row.Title
+            avg_hr = row._asdict().get('_7')
+            logging.debug(f"❤️ Avg HR from Garmin: {avg_hr}")
             logging.info(f"✅ Match found: '{matched_title}' at {garmin_time}")
             break
 
     if matched_title:
         stryd_df['Workout Name'] = matched_title
         stryd_df.to_csv("stryd_matched_with_workout.csv", index=False)
-        return stryd_df
+        return stryd_df, avg_hr
     else:
         logging.warning("❌ No Garmin match found within tolerance.")
         stryd_df['Workout Name'] = "Unknown"

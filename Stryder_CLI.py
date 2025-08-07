@@ -1,5 +1,6 @@
 import argparse
 import logging
+from version import get_git_version
 from db_schema import connect_db, init_db
 from batch_import import batch_process_stryd_folder
 from find_unparsed_runs import main as find_unparsed_main
@@ -7,14 +8,35 @@ from reset_db import reset_db
 from config import DB_PATH
 from utils import prompt_for_timezone, get_paths_with_prompt, prompt_yes_no, interactive_run_insert
 from pathlib import Path
+from queries import view_menu
 
+VERSION = get_git_version()
 
-VERSION = Path("version.txt").read_text().splitlines()[0].split(" - ")[0]
+# Early parser for --debug switch
+debug_parser = argparse.ArgumentParser(add_help=False)
+debug_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
+args, remaining_argv = debug_parser.parse_known_args()
+
+# Set logging level based on --debug
+if args.debug:
+    print("🔧 Debug mode enabled")
+logging.basicConfig(
+    level=logging.DEBUG if args.debug else logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S"
+)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="🏃 Stryder Run Manager CLI")
-    parser.add_argument('--version', action='version', version=f'Stryder CLI v{VERSION}')
+    parser = argparse.ArgumentParser(
+        prog="🏃 Stryder CLI v{VERSION}",
+        description="Your running data CLI",
+        parents=[debug_parser] # Inherit debug flag
+    )
+
+    print(f"🏃 Stryder CLI v{VERSION}")
+    parser.add_argument("--version", action="version", version=f"Stryder CLI v{VERSION}")
+
     subparsers = parser.add_subparsers(dest="command")
 
     # Sub-command: init-db
@@ -29,18 +51,14 @@ def main():
     # Sub-command: find-unparsed
     subparsers.add_parser("find-unparsed", help="List unparsed Stryd files that are not in the database.")
 
+    # Sub-command: view-workouts
+    subparsers.add_parser("view", help="View your workouts.")
+
     # Sub-command: reset-db
     subparsers.add_parser("reset-db", help="⚠️ Delete all data from the database.")
 
-    args = parser.parse_args()
+    args = parser.parse_args(remaining_argv)  # use leftover args
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%H:%M:%S"
-    )
-
-    print(f"🌀 Stryder CLI v{VERSION}")
 
     if args.command == "find-unparsed":
         find_unparsed_main()
@@ -54,6 +72,11 @@ def main():
 
     if args.command == "init-db":
         init_db(conn)
+
+    elif args.command == "view":
+        init_db(conn)
+        view_menu()
+
 
     elif args.command == "add":
         init_db(conn)
