@@ -7,6 +7,7 @@ from path_memory import load_last_used_paths, save_last_used_paths
 from pipeline import process_csv_pipeline, insert_full_run
 from db_schema import run_exists
 
+
 def prompt_yes_no(prompt_msg, default=True):
     # Prompt the user for a yes/no input. Returns True for yes, False for no.
     # Default determines what happens on empty input.
@@ -112,7 +113,7 @@ def interactive_run_insert(stryd_file, garmin_file, conn):
             return None
 
         try:
-            stryd_df, _, _, workout_name = process_csv_pipeline(stryd_file, garmin_file, timezone_str)
+            stryd_df, _, _, workout_name,avg_hr = process_csv_pipeline(stryd_file, garmin_file, timezone_str)
 
             # Convert to UTC and generate DB timestamp key
             start_time = stryd_df["Local Timestamp"].iloc[0]
@@ -133,7 +134,7 @@ def interactive_run_insert(stryd_file, garmin_file, conn):
 
         # Garmin matched
         if workout_name != "Unknown":
-            insert_full_run(stryd_df, workout_name, notes="", avg_hr=None, conn=conn)
+            insert_full_run(stryd_df, workout_name, notes="", avg_hr=avg_hr, conn=conn)
             logging.info(f"✅ Inserted with Garmin match: {stryd_file}")
             return True
 

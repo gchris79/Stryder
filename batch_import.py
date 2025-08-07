@@ -12,15 +12,12 @@ def batch_process_stryd_folder(stryd_folder: Path, garmin_csv_path, conn, timezo
 
     stryd_files = list(Path(stryd_folder).glob("*.csv"))
     logging.info(f"📦 Found {len(stryd_files)} Stryd CSVs to process.")
-    logging.debug(f"Connection object: {conn}")
+
     for file in stryd_files:
         logging.info(f"\n🔄 Processing {file.name}")
         try:
             # Step 1: Process file
-            stryd_df, duration_td, duration_str, workout_name = process_csv_pipeline(str(file), garmin_csv_path, timezone_str)
-
-
-
+            stryd_df, duration_td, duration_str, workout_name, avg_hr = process_csv_pipeline(str(file), garmin_csv_path, timezone_str)
 
             # Step 2: Skip if no Garmin match
             if stryd_df["Workout Name"].iloc[0] == "Unknown":
@@ -37,7 +34,6 @@ def batch_process_stryd_folder(stryd_folder: Path, garmin_csv_path, conn, timezo
             # Step 4: Insert to DB
             workout_name = stryd_df["Workout Name"].iloc[0]
             notes = ""
-            avg_hr = None
             insert_full_run(stryd_df, workout_name, notes, avg_hr, conn)
             parsed_files.append(file.name)
             logging.info(f"✅ Inserted: {file.name}")
