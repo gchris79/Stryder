@@ -45,8 +45,8 @@ It will be named something like:
 ## ⚙️ Features
 
 - 🛠️ Initialize or reset the SQLite database
-- 📂 Batch import Stryd CSVs with automatic Garmin run matching
-- ➕ Add a single run interactively
+- 📂 Batch or single import Stryd CSVs with automatic Garmin run matching
+- 📄 Summaries of last week of 4 week period
 - 🔍 Detect and handle unmatched Stryd runs
 - 🧠 Remembers last-used folders between sessions
 - 🌍 Timezone handling with user prompting and suggestions
@@ -56,7 +56,7 @@ It will be named something like:
 
 ## 🖥️ Example CLI Output
 
-🌀 Stryder CLI v1.1.1
+🌀 Stryder CLI v1.3.0
 
 ✅ Parsed files in DB: 287
 
@@ -77,14 +77,8 @@ It will be named something like:
 # Install dependencies
 pip install -r requirements.txt
 
-# Initialize the database
-python Stryder_CLI.py init-db
-
-# Batch import Stryd folder + Garmin file
-python Stryder_CLI.py add-batch
-
-# Review unmatched runs
-python Stryder_CLI.py find-unparsed
+# Start here for the main menu
+python Stryder_CLI.py
 
 # CLI Help
 python Stryder_CLI.py --help
@@ -114,9 +108,9 @@ These are planned or possible features for future versions of Stryder:
 - [x] Timezone prompt and matching tolerance
 - [x] Skipping unmatched runs for later review
 - [x] Store last-used file paths
-- [ ] Add CLI commands for viewing runs and summaries
-- [ ] Weekly/monthly mileage summaries
-- [ ] Graphs: pace over time, distance over time, elevation
+- [x] Add CLI commands for viewing runs and summaries
+- [x] Weekly/monthly mileage summaries
+- [ ] Graphs: power over time, pace over time, elevation
 - [ ] Support .fit/.tcx/.gpx file parsing
 - [ ] Allow manual tagging of runs (e.g., "race", "long run")
 - [ ] Optional GUI (e.g., Streamlit or PyQt)
