@@ -5,19 +5,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+## [1.3.0] - 2025-08-14
+### 🎯 New: Summaries
+- Weekly and Rolling 4-week summaries from your SQLite data.
+- Shows total distance & time, average pace, average power, and average HR.
+- Clean formatting, sensible defaults, and timezone-aware date windows.
 
-## [Unreleased]
-### Added
-- `summary` CLI command for quick training stats:
-  - Total mileage
-  - Average heart rate
-  - Longest run
-  - Fastest 5K
-- Improved batch import summaries (parsed vs skipped)
-- Enhanced "last used paths" prompt sequence for better UX
+### Fixes & polish
+- Prevented bad `avg_power` values from crashing summaries (legacy rows are coerced to numeric).
+- Unified add/import prompts behave consistently for single and batch.
+- `find-unparsed` closes its DB connection cleanly.- Safer error messages in single add (no undefined variable references).
 
-### Changed
-- Updated documentation in README.md to reflect new commands
+### Upgrade notes
+If you inserted single runs on v1.2.x, you may have string values in `runs.avg_power`. Run:
+```sql
+UPDATE runs
+SET avg_power = NULL
+WHERE typeof(avg_power)='text' OR avg_power GLOB '*:*';
+```
 
 ---
 

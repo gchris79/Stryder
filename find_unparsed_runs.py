@@ -1,51 +1,84 @@
 import sqlite3
+import pandas as pd
 from pathlib import Path
-from zoneinfo import ZoneInfo
-import tzlocal
 
-from config import DB_PATH, GARMIN_CSV_FILE
-from utils import convert_first_timestamp_to_str, get_paths_with_prompt, interactive_run_insert
+from utils import interactive_run_insert, _resolve_tz
+from config import DB_PATH, STRYD_FOLDER, GARMIN_CSV_FILE
 
 
 def get_existing_datetimes(conn):
     cur = conn.cursor()
     cur.execute("SELECT datetime FROM runs")
-
     return {row[0] for row in cur.fetchall()}
 
 
+def convert_first_timestamp_to_str(file_path, _tz_ignored):
+    df = pd.read_csv(file_path)
+    if 'Timestamp' not in df.columns or df['Timestamp'].empty:
+        raise ValueError("Missing or empty 'Timestamp' column")
+
+    # Parse as UTC (tz-aware) and pick the earliest sample
+    ts = pd.to_datetime(df['Timestamp'], unit='s', utc=True).min()
+
+    # Store/compare in UTC to match how runs.datetime is saved in the DB
+    return ts.isoformat(sep=' ', timespec='seconds')
+
+
+def load_paths():
+    """
+    Tries utils.load_last_used_paths(); falls back to config values.
+    Must return (stryd_path, garmin_file)
+    """
+    try:
+        from path_memory import load_last_used_paths
+        sp, gf = load_last_used_paths()
+        if sp and gf:
+            return sp, gf
+    except Exception:
+        pass
+
 def main():
-    local_tz = ZoneInfo(tzlocal.get_localzone_name())
-    stryd_path, _ = get_paths_with_prompt()
-    folder = Path(stryd_path)
+    # # choose tz once; use same for all comparisons
+    timezone_str = input("🌍 Please, add a timezone for these runs (e.g. Europe/Athens): ").strip()
+    tz = _resolve_tz(timezone_str)
 
-    conn = sqlite3.connect(str(DB_PATH))
-    existing_times = get_existing_datetimes(conn)
+    folder = Path(STRYD_FOLDER)
+    conn = sqlite3.connect(DB_PATH)
+    existing_times = get_existing_datetimes(conn)  # set of strings
 
-    unparsed = []
+
+    unparsed: list[Path] = []
     total_files = 0
 
+    # Pass Path objects around; do not store strings
     for file in folder.glob("*.csv"):
         total_files += 1
         try:
-            ts_str = convert_first_timestamp_to_str(file, local_tz)
-            if ts_str not in existing_times:
-                unparsed.append(file.name)
+            ts_str = convert_first_timestamp_to_str(file, tz)
+            if ts_str in existing_times:
+                continue
+            else:
+                unparsed.append(file)   # only truly unparsed
         except Exception as e:
             print(f"❌ Failed to check {file.name}: {e}")
-            unparsed.append(file.name)
+            # if unreadable, treat as unparsed so user can try interactively
+            unparsed.append(file)
 
     print(f"\n✅ Total STRYD files found: {total_files}")
     print(f"✅ Parsed files in DB: {total_files - len(unparsed)}")
     print(f"❗ Unparsed files: {len(unparsed)}")
 
+    if not unparsed:
+        print("\n🎉 Nothing to do. All files are already parsed.")
+        return
+
+    # Only prompt for unparsed ones
     parsed_count = 0
     skipped_count = 0
     total_unparsed = len(unparsed)
 
-    for file in unparsed:
-        full_path = folder / file
-        result = interactive_run_insert(full_path, GARMIN_CSV_FILE, conn)
+    for p in unparsed:
+        result = interactive_run_insert(str(p), GARMIN_CSV_FILE, conn, timezone_str=timezone_str)  # 3 args
 
         if result is True:
             parsed_count += 1
@@ -64,6 +97,7 @@ def main():
     print(f"✅ Parsed: {parsed_count}")
     print(f"⏭️ Skipped: {skipped_count}")
 
+    conn.close()
 
 if __name__ == "__main__":
     main()

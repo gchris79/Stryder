@@ -35,7 +35,9 @@ def init_db(conn):
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         workout_id INTEGER,
         datetime TEXT NOT NULL,
+        avg_power REAL,
         duration_sec INTEGER NOT NULL,
+        distance_m REAL,
         avg_hr INTEGER,
         FOREIGN KEY (workout_id) REFERENCES workouts(id)
     );
@@ -102,7 +104,7 @@ def run_exists(conn, start_time):
     return result is not None
 
 
-def insert_run(workout_id, start_time, duration_sec, avg_hr, conn):
+def insert_run(workout_id, start_time, avg_power, duration_sec, avg_hr, distance_m, conn):
 
         cur = conn.cursor()
 
@@ -115,9 +117,9 @@ def insert_run(workout_id, start_time, duration_sec, avg_hr, conn):
         start_time_str = start_time.isoformat(sep=' ', timespec='seconds')
 
         cur.execute('''INSERT INTO runs 
-                    (workout_id, datetime, duration_sec, avg_hr)
-                    VALUES (?, ?, ?, ?)''',
-                    (workout_id, start_time_str, duration_sec, avg_hr))
+                    (workout_id, datetime, avg_power, duration_sec, avg_hr, distance_m)
+                    VALUES (?, ?, ?, ?, ?, ?)''',
+                    (workout_id, start_time_str, avg_power, duration_sec, avg_hr, distance_m))
 
         conn.commit()
         return cur.lastrowid
@@ -131,9 +133,8 @@ def insert_metrics(run_id, df, conn):
     for i, row in df.iterrows():
         ts = row.get('Local Timestamp')
 
-        if pd.isna(ts):
-            if pd.isna(ts) or not hasattr(ts, 'isoformat'):
-                continue
+        if pd.isna(ts) or not hasattr(ts, 'isoformat'):
+            continue
 
         rows.append((
             run_id,

@@ -1,16 +1,19 @@
 import argparse
 import logging
 from version import get_git_version
+from pathlib import Path
 from db_schema import connect_db, init_db
 from batch_import import batch_process_stryd_folder
 from find_unparsed_runs import main as find_unparsed_main
 from reset_db import reset_db
 from config import DB_PATH
-from utils import prompt_for_timezone, get_paths_with_prompt, prompt_yes_no, interactive_run_insert
-from pathlib import Path
+from utils import prompt_for_timezone, get_paths_with_prompt
+from pipeline import process_csv_pipeline, insert_full_run
 from queries import view_menu
+from summaries import summary_menu
 
 VERSION = get_git_version()
+DEFAULT_TIMEZONE = "Europe/Athens"      # or None for auto-local
 
 # Early parser for --debug switch
 debug_parser = argparse.ArgumentParser(add_help=False)
@@ -27,9 +30,111 @@ logging.basicConfig(
 )
 
 
+def add_import_menu(conn, mode: str | None = None, single_filename: str | None = None) -> bool:
+    # 1) Timezone once
+    tz = prompt_for_timezone()
+    if not tz or tz == "EXIT":
+        print("⚠️ Aborted: no valid timezone provided.")
+        return False
+
+    # 2) Paths once
+    stryd_path, garmin_file = get_paths_with_prompt()
+    if not (stryd_path and garmin_file):
+        print("⚠️ Aborted: paths not provided.")
+        return False
+
+    # 3) Choose mode
+    if mode not in ("batch", "single"):
+        print("\nWhat do you want to import?")
+        print("  1) Entire STRYD folder (batch)")
+        print("  2) A single STRYD file")
+        choice = input("Choose 1 or 2: ").strip()
+        mode = "batch" if choice != "2" else "single"
+
+    if mode == "batch":
+        # Your batch function only logs; don’t rely on local counters.
+        batch_process_stryd_folder(stryd_path, garmin_file, conn, tz)
+        print("\n📊 Batch complete. (See logs for totals)")
+        return True
+
+    # ---- SINGLE MODE BELOW ----
+    # Define names **before** try/except so error prints never reference undefined vars
+    if not single_filename:
+        single_filename = input("📄 Enter STRYD CSV filename (e.g., 6747444.csv): ").strip()
+
+    src = Path(single_filename)
+    src_name = src.name
+    stryd_file = src if src.is_absolute() else Path(stryd_path) / src
+
+    if not stryd_file.exists():
+        print(f"❌ File not found: {stryd_file}")
+        return False
+
+    try:
+        stryd_df, duration_td, avg_power, duration_str, avg_hr, total_m = process_csv_pipeline(
+            str(stryd_file), garmin_file, tz
+        )
+        # Derive workout name if present
+        workout_name = (
+            stryd_df["Workout Name"].iloc[0]
+            if "Workout Name" in stryd_df.columns and len(stryd_df) > 0
+            else "Unknown"
+        )
+        insert_full_run(stryd_df, workout_name, "", avg_power, avg_hr, total_m, conn)
+        print(f"✅ Inserted: {src_name} - {total_m/1000:.2f} km")
+        return True
+    except Exception as e:
+        # Use src_name so we don't depend on stryd_file being in scope
+        print(f"❌ Failed to process {src_name}: {e}")
+        return False
+
+
+def launcher_menu():
+    while True:
+        print("\n🏁 What would you like to do?")
+        print("[1] Add (batch)")
+        print("[2] Find unparsed")
+        print("[3] View")
+        print("[4] Summary")
+        print("[5] Reset DB")
+        print("[q] Quit")
+        choice = input("> ").strip().lower()
+
+        if choice == "1":
+            conn = connect_db(DB_PATH); init_db(conn)
+            try:
+                add_import_menu(conn)
+            finally:
+                conn.close()
+
+        elif choice == "2":
+            find_unparsed_main()
+
+        elif choice == "3":
+            conn = connect_db(DB_PATH); init_db(conn)
+            try:
+                view_menu()
+            finally:
+                conn.close()
+
+        elif choice == "4":
+            conn = connect_db(DB_PATH); init_db(conn)
+            try:
+                summary_menu()
+            finally:
+                conn.close()
+
+        elif choice == "5":
+            reset_db()
+
+        elif choice in {"q", "x"}:
+            break
+        else:
+            print("❓ Not a choice. Try again.")
+
 def main():
     parser = argparse.ArgumentParser(
-        prog="🏃 Stryder CLI v{VERSION}",
+        prog=f"🏃 Stryder CLI v{VERSION}",
         description="Your running data CLI",
         parents=[debug_parser] # Inherit debug flag
     )
@@ -54,11 +159,20 @@ def main():
     # Sub-command: view-workouts
     subparsers.add_parser("view", help="View your workouts.")
 
+    # Sub-command: summary-workouts
+    parser_summary = subparsers.add_parser("summary", help="Aggregate summaries")
+    parser_summary.add_argument("--period", choices=["week", "last7", "4weeks"], required=True)
+    parser_summary.add_argument("--tz", default="Europe/Athens")
+
     # Sub-command: reset-db
     subparsers.add_parser("reset-db", help="⚠️ Delete all data from the database.")
 
     args = parser.parse_args(remaining_argv)  # use leftover args
 
+
+    if args.command is None:
+        launcher_menu()
+        return
 
     if args.command == "find-unparsed":
         find_unparsed_main()
@@ -77,42 +191,28 @@ def main():
         init_db(conn)
         view_menu()
 
+    elif args.command == "summary":
+        from summaries import _show_summary
+        if args.period == "week":
+            _show_summary(connect_db(DB_PATH), "week_completed", args.tz)
+        elif args.period == "last7":
+            _show_summary(connect_db(DB_PATH), "rolling_7d", args.tz)
+        else:
+            _show_summary(connect_db(DB_PATH), "rolling_4w", args.tz)
+
 
     elif args.command == "add":
         init_db(conn)
 
         if args.batch:
-            timezone_str = prompt_for_timezone()
-            if timezone_str is None:
-                print("❌ No timezone provided. Aborting import.")
-                return
-
-            if prompt_yes_no("📁 Use stored paths?"):
-                stryd_path, garmin_file = get_paths_with_prompt()
-                if stryd_path and garmin_file:
-                    batch_process_stryd_folder(stryd_path, garmin_file, conn, timezone_str)
-                else:
-                    logging.warning("⚠️ Aborting batch: valid paths not provided.")
-            else:
-                logging.warning("⚠️ Batch mode requires valid paths.")
-
+            add_import_menu(conn, mode="batch")
 
         elif args.single:
-            if prompt_yes_no("📁 Use stored paths?"):
-                stryd_path, garmin_file = get_paths_with_prompt()
-                stryd_file = Path(stryd_path) / args.single
-            else:
-                stryd_folder = Path(input("📁 Enter STRYD folder path: ").strip())
-                garmin_file = Path(input("📄 Enter Garmin CSV file: ").strip())
-                stryd_file = stryd_folder / args.single
+            add_import_menu(conn, mode="single", single_filename=args.single)
 
-            result = interactive_run_insert(stryd_file, garmin_file, conn)
-            if result is True:
-                logging.info("✅ Single run added successfully.")
-            elif result is False:
-                logging.info("⏭️ Single run skipped.")
-            elif result is None:
-                logging.info("👋 User exited.")
+        else:
+            # no flag? fall back to interactive choice
+            add_import_menu(conn)
 
     else:
         parser.print_help()

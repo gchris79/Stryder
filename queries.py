@@ -1,6 +1,5 @@
 import pandas as pd
-from tabulate import tabulate
-
+from utils import print_table
 from config import DB_PATH
 from db_schema import connect_db
 
@@ -12,6 +11,7 @@ pd.set_option('display.width', 150)
 
 # Print dataframe with daytime formated
 def print_df_format(df):
+    df = df.copy()
     df.columns = df.columns.str.strip().str.lower()
 
     if df.empty:
@@ -21,12 +21,36 @@ def print_df_format(df):
     if "datetime" in df.columns:
         df["datetime"] = pd.to_datetime(df["datetime"]).dt.strftime('%Y-%m-%d %H:%M:%S')
 
+    if 'distance (m)' in df.columns:
+        # make a new column with (km)
+        km = pd.to_numeric(df['distance (m)'], errors='coerce') / 1000
+        df['distance (km)'] = km
+        # drop distance (m) column
+        df.drop(columns='distance (m)', inplace=True)
+
     if 'duration_sec' in df.columns:
         df['duration'] = pd.to_timedelta(df['duration_sec'], unit='s')
-        df['duration'] = df['duration'].apply(lambda td: f"{int(td.total_seconds() // 3600):02}:{int(td.total_seconds() % 3600 // 60):02}:{int(td.total_seconds() % 60):02}")
+        df['duration'] = df['duration'].apply(lambda
+            td: f"{int(td.total_seconds() // 3600):02}:{int(td.total_seconds() % 3600 // 60):02}:{int(td.total_seconds() % 60):02}")
         df.drop(columns='duration_sec', inplace=True)
 
-    print(tabulate(df, headers='keys', tablefmt='pretty', showindex=False))
+    if "avg power (w/kg)" in df.columns:
+        df["avg power (w/kg)"] = pd.to_numeric(df['avg power (w/kg)'], errors='coerce')
+
+    # re-order columns
+    desired = [
+        "datetime",
+        "workout name",
+        "distance (km)",
+        "duration",
+        "avg power (w/kg)",
+        "avg hr",
+        "workout type",
+    ]
+    cols = [c for c in desired if c in df.columns] + [c for c in df.columns if c not in desired]
+    df = df[cols]
+
+    print_table(df)
 
 
 def get_base_workouts_query():
@@ -34,7 +58,9 @@ def get_base_workouts_query():
         SELECT 
             runs.datetime AS "DateTime",
             workouts.workout_name AS "Workout Name",
+            runs.distance_m AS 'distance (m)',
             runs.duration_sec,
+            runs.avg_power AS "Avg Power (w/kg)",
             runs.avg_hr AS "Avg HR",
             workout_types.name AS "Workout Type"
         FROM runs
@@ -53,6 +79,7 @@ def get_all_workouts(conn):
 def get_workouts_bydate(date1, date2, conn):
     query = get_base_workouts_query() + "WHERE runs.datetime BETWEEN ? AND ? ORDER BY runs.datetime"
     return pd.read_sql(query, conn, params=(date1, date2))
+
 
 # Return workouts filtered by keyword
 def get_workout_by_keyword(keyword,conn):

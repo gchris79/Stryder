@@ -2,6 +2,7 @@ import logging
 import pandas as pd
 from datetime import timedelta
 from zoneinfo import ZoneInfo
+from utils import _resolve_tz
 
 
 def load_csv(stryd_csv, garmin_csv):
@@ -9,11 +10,13 @@ def load_csv(stryd_csv, garmin_csv):
     garmin_df = pd.read_csv(garmin_csv)
     return stryd_df, garmin_df
 
-def edit_stryd_csv(df, timezone_str):
+
+def edit_stryd_csv(df, timezone_str: str | None = None):
+
     # Convert Unix timestamps to local time using user-specified timezone
     df['Local Timestamp'] = pd.to_datetime(
         df['Timestamp'], unit='s', utc=True
-    ).dt.tz_convert(ZoneInfo(timezone_str))
+    ).dt.tz_convert(_resolve_tz(timezone_str))
 
     # Move the Local Timestamp to the first column
     cols = ['Local Timestamp'] + [col for col in df.columns if col != 'Local Timestamp']
@@ -47,48 +50,53 @@ def normalize_workout_type(raw_name):
         return "Other"
 
 
-def match_workout_name(stryd_df, garmin_df, timezone_str):
-    local_tz = ZoneInfo(timezone_str)
+def get_matched_garmin_row(stryd_df, garmin_df, timezone_str: str | None = None, tolerance_sec: int = 60):
 
+    tz = _resolve_tz(timezone_str)
+
+    # Stryd start time → UTC
     stryd_start_time = stryd_df.loc[0, 'Local Timestamp']
-
-    garmin_df.columns = garmin_df.columns.str.strip()
-
-    if not pd.api.types.is_datetime64_any_dtype(garmin_df['Date']):
-        garmin_df['Date'] = pd.to_datetime(garmin_df['Date'], format='%Y-%m-%d %H:%M:%S')
-
-    if garmin_df['Date'].dt.tz is None:
-        garmin_df['Date'] = garmin_df['Date'].dt.tz_localize(local_tz, ambiguous='NaT').dt.tz_convert('UTC')
-
     if stryd_start_time.tzinfo is None:
         stryd_start_time = stryd_start_time.replace(tzinfo=ZoneInfo("UTC"))
     else:
         stryd_start_time = stryd_start_time.astimezone(ZoneInfo("UTC"))
 
-    tolerance = timedelta(seconds=60)
-    matched_title = None
+    # Garmin dates → ensure tz-aware, then to UTC
+    g = garmin_df.copy()
+    g.columns = g.columns.str.strip()
+    if not pd.api.types.is_datetime64_any_dtype(g['Date']):
+        g['Date'] = pd.to_datetime(g['Date'], format='%Y-%m-%d %H:%M:%S')
+    if g['Date'].dt.tz is None:
+        g['Date'] = g['Date'].dt.tz_localize(tz, ambiguous='infer').dt.tz_convert('UTC')
 
-    for row in garmin_df.itertuples(index=False):
-        garmin_time = row.Date
+    tol = timedelta(seconds=tolerance_sec)
 
-        delta = abs(garmin_time - stryd_start_time)
-        garmin_df.columns = garmin_df.columns.str.strip() # added now
-        if delta <= tolerance:
-            matched_title = row.Title
-            avg_hr = row._asdict().get('_7')
-            logging.debug(f"❤️ Avg HR from Garmin: {avg_hr}")
-            logging.info(f"✅ Match found: '{matched_title}' at {garmin_time}")
-            break
+    # Find first row within tolerance
+    for row in g.itertuples(index=False):
+        if abs(row.Date - stryd_start_time) <= tol:
+            # return the full Series so we can read any fields
+            return g.loc[g['Date'] == row.Date].iloc[0]
 
-    if matched_title:
-        stryd_df['Workout Name'] = matched_title
-        stryd_df.to_csv("stryd_matched_with_workout.csv", index=False)
-        return stryd_df, avg_hr
-    else:
-        logging.warning("❌ No Garmin match found within tolerance.")
-        stryd_df['Workout Name'] = "Unknown"
-        return stryd_df
+    return None
 
+
+def garmin_field(row, candidates, transform=None, coerce_numeric=False):
+    """Return first available field from `candidates` in the row, optionally transformed."""
+    if row is None:
+        return None
+    for c in candidates:
+        if c in row.index:
+            val = row[c]
+            if coerce_numeric:
+                import pandas as pd
+                val = pd.to_numeric([val], errors="coerce")[0]
+            if transform:
+                try:
+                    val = transform(val)
+                except Exception:
+                    pass
+            return val
+    return None
 
 
 def calculate_duration(stryd_df):

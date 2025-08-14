@@ -2,10 +2,46 @@ import pandas as pd
 import logging
 from zoneinfo import ZoneInfo
 from pathlib import Path
-
+import tzlocal
+from tabulate import tabulate
 from path_memory import load_last_used_paths, save_last_used_paths
-from pipeline import process_csv_pipeline, insert_full_run
 from db_schema import run_exists
+
+
+# def set_tablefmt(fmt: str) -> None:
+#     """Optionally change default table format app-wide."""
+#     global DEFAULT_TABLEFMT
+#     DEFAULT_TABLEFMT = fmt
+
+
+def print_table(df, tablefmt=None, floatfmt=".2f",
+                numalign="decimal", showindex=False,
+                headers="keys", colalign=None):
+    # numeric columns should remain floats for alignment
+
+    tf = tablefmt or "psql"
+    if colalign is None:
+        print(tabulate(
+            df,
+            headers=headers,
+            tablefmt=tf,
+            showindex=showindex,
+            floatfmt=floatfmt,
+            numalign=numalign,
+        ))
+    else:
+        print(tabulate(
+            df,
+            headers=headers,
+            tablefmt=tf,
+            showindex=showindex,
+            floatfmt=floatfmt,
+            numalign=numalign,
+            colalign=list(colalign),  # ensure it's a list
+        ))
+
+def _resolve_tz(timezone_str: str | None) -> ZoneInfo:
+    return ZoneInfo(timezone_str) if timezone_str else ZoneInfo(tzlocal.get_localzone_name())
 
 
 def prompt_yes_no(prompt_msg, default=True):
@@ -36,26 +72,6 @@ def prompt_for_timezone(file_name=None):
     except Exception:
         print("❌ Invalid timezone. Skipping.")
         return None
-
-
-def convert_first_timestamp_to_str(file_path, tz):
-    """
-        Extracts the first timestamp from a Stryd CSV file and returns it
-        as a UTC ISO string (used for DB comparison).
-        """
-    df = pd.read_csv(file_path)
-
-    if 'Timestamp' not in df.columns or df['Timestamp'].empty:
-        raise ValueError("Missing or empty 'Timestamp' column")
-
-    # Step 1: Convert from Unix to UTC
-    ts = pd.to_datetime(df['Timestamp'].iloc[0], unit='s', utc=True)
-
-    # Step 2: Convert to local time then to UTC again (to match DB insert logic)
-    local_ts = ts.tz_convert(tz).astimezone(ZoneInfo("UTC"))
-
-    # Step 3: Return as string
-    return local_ts.isoformat(sep=' ', timespec='seconds')
 
 
 def get_paths_with_prompt():
@@ -97,49 +113,57 @@ def get_paths_with_prompt():
         if not prompt_yes_no("❌ Garmin file not found. Try again?"):
             logging.warning("Aborted: Garmin file not provided. Operation cancelled.")
             return None, None
+        if not garmin_file.exists():
+            print(f"❌ Default Garmin CSV not found at: {garmin_file}")
+            # fall through to manual prompt below
+        else:
+            return stryd_path, garmin_file
 
-    return stryd_path, garmin_file
 
 
-def interactive_run_insert(stryd_file, garmin_file, conn):
-    """
-    Attempts to process and insert a single run with user guidance.
-    Returns True if inserted, False if skipped, or None if exited.
-    """
+def interactive_run_insert(stryd_file, garmin_file, conn, timezone_str=None) -> bool | None:
+
+    from pipeline import process_csv_pipeline, insert_full_run
+    file_name = Path(stryd_file).name
+
     while True:
-        timezone_str = prompt_for_timezone(stryd_file.name)
-        if timezone_str == "EXIT":
-            logging.info("👋 User exited early.")
-            return None
+        if timezone_str is None:
+            tz_input = prompt_for_timezone(stryd_file)
+            if tz_input == "EXIT":
+                logging.info("👋 User exited early.")
+                return None
+            # for invalid or None timezone values
+            if not tz_input:
+                return None
+            timezone_str = tz_input
 
         try:
-            stryd_df, _, _, workout_name,avg_hr = process_csv_pipeline(stryd_file, garmin_file, timezone_str)
+            stryd_df, _, avg_power, _, avg_hr, total_m = process_csv_pipeline(stryd_file, garmin_file, timezone_str)
 
-            # Convert to UTC and generate DB timestamp key
+
+            # ✅ Use LOCAL timestamp string to match DB, no UTC conversion here
             start_time = stryd_df["Local Timestamp"].iloc[0]
-            if start_time.tzinfo is not None:
-                start_time = start_time.astimezone(ZoneInfo("UTC"))
-            else:
-                start_time = start_time.replace(tzinfo=ZoneInfo("UTC"))
             start_time_str = start_time.isoformat(sep=' ', timespec='seconds')
 
             # Check the DB to avoid re-inserts
             if run_exists(conn, start_time_str):
-                logging.info(f"⚠️ Already in DB: {stryd_file.name} ({start_time_str})")
+                logging.info(f"⚠️ Already in DB: {file_name} ({start_time_str})")
                 return False
 
         except Exception as e:
             logging.error(f"❌ Failed to process {stryd_file}: {e}")
             return False
 
+        workout_name = stryd_df.get("Workout Name", pd.Series(["Unknown"])).iloc[0]
+
         # Garmin matched
         if workout_name != "Unknown":
-            insert_full_run(stryd_df, workout_name, notes="", avg_hr=avg_hr, conn=conn)
-            logging.info(f"✅ Inserted with Garmin match: {stryd_file}")
+            insert_full_run(stryd_df, workout_name, notes="",avg_power=avg_power, avg_hr=avg_hr,total_m=total_m, conn=conn)
+            logging.info(f"✅ Inserted with Garmin match: {file_name} - {total_m/1000:.2f} km")
             return True
 
         # Garmin not matched → show menu
-        print(f"\n❌ No Garmin match found for {stryd_file.name}.")
+        print(f"\n❌ No Garmin match found for {file_name}.")
         x = input(
             "What would you like to do?\n"
             "[1] Parse anyway without Garmin match\n"
@@ -149,15 +173,17 @@ def interactive_run_insert(stryd_file, garmin_file, conn):
         ).strip()
 
         if x == "1":
-            insert_full_run(stryd_df, workout_name, notes="", avg_hr=None, conn=conn)
+            insert_full_run(stryd_df, workout_name, notes="",avg_power=avg_power, avg_hr=None,total_m=total_m, conn=conn)
             logging.info(f"✅ Inserted without Garmin match: {stryd_file}")
             return True
 
         elif x == "2":
-            continue  # try another timezone
+            # force a re-prompt next loop
+            timezone_str = None
+            continue
 
         elif x == "3":
-            logging.info(f"⏭️ Skipped: {stryd_file}")
+            logging.info(f"⏭️ Skipped: {file_name}")
             return False
 
         elif x == "4":

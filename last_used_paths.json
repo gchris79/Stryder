@@ -1,1 +1,7 @@
-{"stryd_path": "n", "garmin_file": "n"}
+{
+    "stryd_path": "data/CSV_Stryd",
+    "garmin_file": "data/CSV_Garmin/Garmin.csv",
+    "STRYD_FOLDER": "E:\\PyCharm Projects\\Stryder\\data\\CSV_Stryd",
+    "GARMIN_CSV_FILE": "E:\\PyCharm Projects\\Stryder\\data\\CSV_Garmin\\Garmin.csv",
+    "TIMEZONE": "Europe/Athens"
+}

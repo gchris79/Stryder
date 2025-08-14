@@ -4,9 +4,7 @@ __pycache__/
 data/
 logs/
 *.log
-fit_parsing.py
-Garmin.csv
-gpx_parsing.py
+*.pyc
 runs_data.db
+last_used_paths.json
 stryd_matched_with_workout.csv
-StryFitFields.txt
