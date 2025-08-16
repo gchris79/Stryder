@@ -1,9 +1,7 @@
-import sqlite3
-
 from config import DB_PATH
 
-def reset_db():
-    conn = sqlite3.connect(str(DB_PATH))
+
+def reset_db(conn):
     cur = conn.cursor()
 
     confirm = input(f"⚠️  This will delete ALL data from {DB_PATH}. Type 'yes' to continue: ")
@@ -17,14 +15,8 @@ def reset_db():
     cur.execute("DELETE FROM metrics")
     cur.execute("DELETE FROM runs")
     cur.execute("DELETE FROM workouts")
-    conn.commit()
-
-    # Optional: Reset AUTOINCREMENT counters
+    cur.execute("DELETE FROM workout_types")
     cur.execute("DELETE FROM sqlite_sequence")
     conn.commit()
 
-    conn.close()
-    print("✅ Database reset completed.")
-
-if __name__ == "__main__":
-    reset_db()
+    print("✅ Database reset completed.\n")

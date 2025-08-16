@@ -5,6 +5,25 @@ from zoneinfo import ZoneInfo
 from utils import _resolve_tz
 
 
+class ZeroStrydDataError(Exception):
+    """Raised when Stryd CSV has zero speed/distance for the entire file."""
+    pass
+
+
+def _is_stryd_all_zero(df: pd.DataFrame) -> bool:
+    # Prefer speed check
+    if "Stryd Speed (m/s)" in df.columns:
+        spd = pd.to_numeric(df["Stryd Speed (m/s)"], errors="coerce").fillna(0)
+        if (spd.abs() < 1e-12).all():
+            return True
+    # Fallback: distance column if present
+    if "Stryd Distance (meters)" in df.columns:
+        dist = pd.to_numeric(df["Stryd Distance (meters)"], errors="coerce").fillna(0)
+        if float(dist.max()) <= 0.0:
+            return True
+    return False
+
+
 def load_csv(stryd_csv, garmin_csv):
     stryd_df = pd.read_csv(stryd_csv)
     garmin_df = pd.read_csv(garmin_csv)
@@ -28,6 +47,11 @@ def edit_stryd_csv(df, timezone_str: str | None = None):
     df['Distance Delta'] = df['Stryd Speed (m/s)'] * df['Time Delta']
     df['Stryd Distance (meters)'] = df['Distance Delta'].cumsum()
 
+    # Check Stryd speed if it returns 00.00 data
+    spd_col = pd.to_numeric(df.get("Stryd Speed (m/s)"), errors="coerce").fillna(
+        0) if "Stryd Speed (m/s)" in df.columns else None
+    if spd_col is not None and (spd_col.abs() < 1e-12).all():
+        logging.warning("⚠️  Stryd CSV appears to have zero speed everywhere.")
     return df
 
 

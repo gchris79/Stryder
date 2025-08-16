@@ -1,9 +1,11 @@
 import sqlite3
 import pandas as pd
 from pathlib import Path
+import logging
 
-from utils import interactive_run_insert, _resolve_tz
-from config import DB_PATH, STRYD_FOLDER, GARMIN_CSV_FILE
+from file_parsing import ZeroStrydDataError
+from utils import interactive_run_insert, _resolve_tz, get_paths_with_prompt
+from config import DB_PATH
 
 
 def get_existing_datetimes(conn):
@@ -31,7 +33,7 @@ def load_paths():
     """
     try:
         from path_memory import load_last_used_paths
-        sp, gf = load_last_used_paths()
+        sp, gf, _ = load_last_used_paths()
         if sp and gf:
             return sp, gf
     except Exception:
@@ -42,7 +44,7 @@ def main():
     timezone_str = input("🌍 Please, add a timezone for these runs (e.g. Europe/Athens): ").strip()
     tz = _resolve_tz(timezone_str)
 
-    folder = Path(STRYD_FOLDER)
+    stry_folder, garmin_file = get_paths_with_prompt()
     conn = sqlite3.connect(DB_PATH)
     existing_times = get_existing_datetimes(conn)  # set of strings
 
@@ -51,7 +53,7 @@ def main():
     total_files = 0
 
     # Pass Path objects around; do not store strings
-    for file in folder.glob("*.csv"):
+    for file in stry_folder.glob("*.csv"):
         total_files += 1
         try:
             ts_str = convert_first_timestamp_to_str(file, tz)
@@ -59,6 +61,7 @@ def main():
                 continue
             else:
                 unparsed.append(file)   # only truly unparsed
+
         except Exception as e:
             print(f"❌ Failed to check {file.name}: {e}")
             # if unreadable, treat as unparsed so user can try interactively
@@ -78,7 +81,7 @@ def main():
     total_unparsed = len(unparsed)
 
     for p in unparsed:
-        result = interactive_run_insert(str(p), GARMIN_CSV_FILE, conn, timezone_str=timezone_str)  # 3 args
+        result = interactive_run_insert(str(p), garmin_file, conn, timezone_str=timezone_str)  # 3 args
 
         if result is True:
             parsed_count += 1

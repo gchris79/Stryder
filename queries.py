@@ -1,100 +1,103 @@
 import pandas as pd
-from utils import print_table
-from config import DB_PATH
-from db_schema import connect_db
+
+from utils import get_default_timezone, print_table
+from zoneinfo import ZoneInfo
+from summaries import _fmt_hms
+
 
 pd.set_option('display.max_rows', None)  # show all rows
 pd.set_option('display.max_columns', None) # show all columns
 pd.set_option('display.width', 150)
 
 
-
-# Print dataframe with daytime formated
-def print_df_format(df):
-    df = df.copy()
-    df.columns = df.columns.str.strip().str.lower()
-
-    if df.empty:
-        print("❌ No results to display.")
+def format_df_columns(df):
+    # Format the columns of the dataframe for display
+    if df is None or getattr(df, "empty", True):
+        print("ℹ️ No results.")
         return
 
-    if "datetime" in df.columns:
-        df["datetime"] = pd.to_datetime(df["datetime"]).dt.strftime('%Y-%m-%d %H:%M:%S')
+    # Format distance → km
+    if "distance (m)" in df.columns:
+        df["Distance (km)"] = (df["distance (m)"].fillna(0) / 1000).round(2)
+        df.drop(columns=["distance (m)"], inplace=True)
 
-    if 'distance (m)' in df.columns:
-        # make a new column with (km)
-        km = pd.to_numeric(df['distance (m)'], errors='coerce') / 1000
-        df['distance (km)'] = km
-        # drop distance (m) column
-        df.drop(columns='distance (m)', inplace=True)
+    # Format duration
+    if "duration_sec" in df.columns:
+        df["Duration"] = df["duration_sec"].fillna(0).astype(int).apply(_fmt_hms)
+        df.drop(columns=["duration_sec"], inplace=True)
 
-    if 'duration_sec' in df.columns:
-        df['duration'] = pd.to_timedelta(df['duration_sec'], unit='s')
-        df['duration'] = df['duration'].apply(lambda
-            td: f"{int(td.total_seconds() // 3600):02}:{int(td.total_seconds() % 3600 // 60):02}:{int(td.total_seconds() % 60):02}")
-        df.drop(columns='duration_sec', inplace=True)
 
-    if "avg power (w/kg)" in df.columns:
-        df["avg power (w/kg)"] = pd.to_numeric(df['avg power (w/kg)'], errors='coerce')
+    # Check if there is a DateTime field → local (if present)
+    tz = get_default_timezone() or "Europe/Athens"
+    dt_col = next(
+        (c for c in df.columns if c.lower().replace(" ", "") in {"datetime", "date"}),
+        None,
+    )
+    if dt_col:
+        try:
+            df.sort_values(by=dt_col, inplace=True)
+        except Exception:
+            pass
+        dt = pd.to_datetime(df[dt_col], utc=True, errors="coerce")
+        df[dt_col] = dt.dt.tz_convert(ZoneInfo(tz)).dt.strftime("%Y-%m-%d %H:%M")
+        df.rename(columns={dt_col: f"DateTime ({tz})"}, inplace=True)
 
-    # re-order columns
-    desired = [
-        "datetime",
-        "workout name",
-        "distance (km)",
-        "duration",
-        "avg power (w/kg)",
-        "avg hr",
-        "workout type",
-    ]
-    cols = [c for c in desired if c in df.columns] + [c for c in df.columns if c not in desired]
-    df = df[cols]
+    df_view = df[[f"DateTime ({tz})", "Workout Name", "Distance (km)", "Duration", "Avg Power (w/kg)", "Avg HR", "Workout Type"]].copy()
+    return df_view
 
-    print_table(df)
+
+def render_workouts(df):
+    """Format then print a workouts DataFrame."""
+
+    df_fmt = format_df_columns(df)
+    if df_fmt is not None and not df_fmt.empty:
+        print_table(df_fmt)
+    else:
+        print("ℹ️ No results.")
 
 
 def get_base_workouts_query():
     return """
         SELECT 
-            runs.datetime AS "DateTime",
-            workouts.workout_name AS "Workout Name",
-            runs.distance_m AS 'distance (m)',
-            runs.duration_sec,
-            runs.avg_power AS "Avg Power (w/kg)",
-            runs.avg_hr AS "Avg HR",
-            workout_types.name AS "Workout Type"
-        FROM runs
-        JOIN workouts ON runs.workout_id = workouts.id
-        JOIN workout_types ON workouts.workout_type_id = workout_types.id
+            r.datetime AS "DateTime",
+            w.workout_name AS "Workout Name",
+            r.distance_m AS 'distance (m)',
+            r.duration_sec,
+            r.avg_power AS "Avg Power (w/kg)",
+            r.avg_hr AS "Avg HR",
+            wt.name AS "Workout Type"
+        FROM runs r
+        JOIN workouts w ON r.workout_id = w.id
+        JOIN workout_types wt ON w.workout_type_id = wt.id
     """
 
 
 # Return all workouts
 def get_all_workouts(conn):
-    query = get_base_workouts_query() + " ORDER BY runs.datetime"
+    query = get_base_workouts_query() + " ORDER BY r.datetime"
     return pd.read_sql(query, conn)
 
 
 # Return workouts filtered by date
 def get_workouts_bydate(date1, date2, conn):
-    query = get_base_workouts_query() + "WHERE runs.datetime BETWEEN ? AND ? ORDER BY runs.datetime"
+    query = get_base_workouts_query() + "WHERE r.datetime BETWEEN ? AND ? ORDER BY r.datetime"
     return pd.read_sql(query, conn, params=(date1, date2))
 
 
 # Return workouts filtered by keyword
 def get_workout_by_keyword(keyword,conn):
     query = get_base_workouts_query() + """
-        WHERE workouts.workout_name LIKE ? 
-            OR workout_types.name LIKE ?
-        ORDER BY runs.datetime
+        WHERE w.workout_name LIKE ? 
+            OR wt.name LIKE ?
+        ORDER BY r.datetime
     """
     like_term = f"%{keyword}%"
     return pd.read_sql(query,conn, params=(like_term, like_term))
 
 
 # View (command) menu
-def view_menu():
-    conn = connect_db(DB_PATH)
+def view_menu(conn):
+
     while True:
         choice = input(
             "Choose what to view:\n"
@@ -105,7 +108,7 @@ def view_menu():
         ).strip()
         if choice == "1":
             df = get_all_workouts(conn)
-            print_df_format(df)
+            render_workouts(df)
 
         elif choice == "2":
             start_date = input("Start date (YYYY-MM-DD): ")
@@ -113,12 +116,12 @@ def view_menu():
             start_full = f"{start_date} 00:00:00"
             end_full = f"{end_date} 23:59:59"
             df = get_workouts_bydate(start_full, end_full, conn)
-            print_df_format(df)
+            render_workouts(df)
 
         elif choice == "3":
             keyword = input("Search workouts by keyword: ")
             df = get_workout_by_keyword(keyword,conn)
-            print_df_format(df)
+            render_workouts(df)
 
         elif choice == "4":
             break

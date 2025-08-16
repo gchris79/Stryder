@@ -1,10 +1,7 @@
 from datetime import datetime, timedelta, time
 from zoneinfo import ZoneInfo
 import pandas as pd
-
-from config import DB_PATH
-from db_schema import connect_db
-from utils import print_table
+from utils import print_table, get_default_timezone
 
 
 
@@ -21,7 +18,7 @@ def _fmt_pace(sec_per_km: float | None) -> str:
         return "-"
     m = int(sec_per_km // 60)
     s = int(round(sec_per_km % 60))
-    return f"{m}:{s:02}/km"
+    return f'{m}:{s:02}"/km'
 
 
 def _get_summary_bounds_local(mode: str, tz_str: str):
@@ -73,7 +70,7 @@ def _to_utc_string(dt_local):
     return dt_utc.isoformat(sep=' ', timespec='seconds')
 
 
-def get_period_summary(conn, mode, tz_name: str = "Europe/Athens"):
+def get_period_summary(conn, mode, tz_name):
     """
     Returns a dict with week-level aggregates and a small per-run table.
     Pulls runs in the last completed local week OR last 7 days (converted to UTC for filtering),
@@ -119,10 +116,7 @@ def get_period_summary(conn, mode, tz_name: str = "Europe/Athens"):
 
     # total time
     total_sec = int(df["duration_sec"].fillna(0).sum())
-    h = total_sec // 3600
-    m = (total_sec % 3600) // 60
-    s = total_sec % 60
-    time_hms = f"{h:02}:{m:02}:{s:02}"
+    time_hms = _fmt_hms(total_sec)
 
     # weighted avg HR by duration (ignore null HR rows)
     dur = df["duration_sec"].fillna(0)
@@ -137,7 +131,7 @@ def get_period_summary(conn, mode, tz_name: str = "Europe/Athens"):
 
     return {
         "label": label,
-        "period_utc": (start_utc, end_utc),  # you can also return local strings if you prefer to display those
+        "period_utc": (start_utc, end_utc),
         "totals": {
             "runs": int(len(df)),
             "time_hms": time_hms,
@@ -203,7 +197,7 @@ def summary_df(runs_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     df["Avg Power"] = df["Avg Power (num)"].map(lambda x: f"{x:.2f}" if pd.notna(x) else "-")
 
     # By‑run table with the exact columns/order used by view
-    by_run = df[["DateTime", "Workout Name","Avg Power", "Avg HR", "Distance (km)", "Workout Type", "Duration"]].copy()
+    by_run = df[["DateTime", "Workout Name","Distance (km)", "Duration", "Avg Power", "Avg HR", "Workout Type"]].copy()
 
     # overview row
     total_km = df["Distance (km)"].sum().round(2)
@@ -214,20 +208,21 @@ def summary_df(runs_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     avg_power_overall = df["Avg Power (num)"].dropna().mean()
     avg_power_overall_str = f"{avg_power_overall:.2f}" if pd.notna(avg_power_overall) else "-"
     avg_pace = total_sec / total_km
+    avg_pace_str = _fmt_pace(avg_pace)
 
     overview = pd.DataFrame([{
         "Runs": total_runs,
         "Total Dist (km)": total_km,
         "Avg Power (w/kg)": avg_power_overall_str,
         "Total Time": _fmt_hms(total_sec),
-        "Avg Pace": avg_pace,
+        "Avg Pace": avg_pace_str,
         "Avg HR": avg_hr if avg_hr is not None else "-"
     }])
 
     return overview, by_run
 
 
-def _show_summary(conn, mode, tz):
+def _show_summary(conn, mode: str, tz: str):
     summary = get_period_summary(conn, mode=mode, tz_name=tz)
     title = summary["label"]
     if summary["totals"]["runs"] == 0:
@@ -235,6 +230,12 @@ def _show_summary(conn, mode, tz):
         return
     df_runs = summary["per_run"]
     overview, by_run = summary_df(df_runs)
+
+    # 🌍 convert the displayed DateTime (stored UTC) to local for output
+    if "DateTime" in by_run.columns:
+        dt = pd.to_datetime(by_run["DateTime"], utc=True, errors="coerce")
+        by_run["DateTime"] = dt.dt.tz_convert(ZoneInfo(tz)).dt.strftime("%Y-%m-%d %H:%M")
+        by_run.rename(columns={"DateTime": f"DateTime ({tz})"}, inplace=True)
     print_summary(overview, by_run, title=title)
 
 
@@ -249,8 +250,9 @@ def print_summary(overview: pd.DataFrame, by_run: pd.DataFrame, title: str):
         print("\n📋 Runs")
         print_table(by_run)
 
-def summary_menu():
-    conn = connect_db(DB_PATH)
+def summary_menu(conn):
+
+    tz = get_default_timezone()
     while True:
         choice = input(
             "Choose a summary you are interested in:\n"
@@ -267,10 +269,10 @@ def summary_menu():
                     "[3] Back\n> "
                 ).strip()
                 if choice2 == "1":
-                    _show_summary(conn, "week_completed", "Europe/Athens")
+                    _show_summary(conn, "week_completed", tz=tz)
 
                 elif choice2 == "2":
-                    _show_summary(conn, "rolling_7d", "Europe/Athens")
+                    _show_summary(conn, "rolling_7d", tz=tz)
 
                 elif choice2 == "3":
                     break
@@ -278,7 +280,7 @@ def summary_menu():
                     print("Invalid choice, try again.")
 
         elif choice == "2":
-            _show_summary(conn, "rolling_4w", "Europe/Athens")
+            _show_summary(conn, "rolling_4w", tz=tz)
 
         elif choice == "3":
             break

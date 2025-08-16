@@ -4,14 +4,9 @@ from zoneinfo import ZoneInfo
 from pathlib import Path
 import tzlocal
 from tabulate import tabulate
+
 from path_memory import load_last_used_paths, save_last_used_paths
 from db_schema import run_exists
-
-
-# def set_tablefmt(fmt: str) -> None:
-#     """Optionally change default table format app-wide."""
-#     global DEFAULT_TABLEFMT
-#     DEFAULT_TABLEFMT = fmt
 
 
 def print_table(df, tablefmt=None, floatfmt=".2f",
@@ -58,6 +53,30 @@ def prompt_yes_no(prompt_msg, default=True):
         print("⚠️ Invalid input. Please enter Y or N.")
 
 
+def get_default_timezone() -> str | None:
+    """Read stored timezone (no prompts)."""
+    _, _, tz = load_last_used_paths()
+    return tz
+
+
+def ensure_default_timezone() -> str | None:
+    """Return stored tz if present; otherwise prompt once, validate, store, and return it."""
+    tz = get_default_timezone()
+    if tz:
+        return tz
+    while True:
+        entered = input("🌍 Default timezone (e.g., Europe/Athens): ").strip()
+        if not entered or entered.lower() == "exit":
+            return None
+        try:
+            # validate
+            _ = ZoneInfo(entered)
+            save_last_used_paths(timezone=entered)
+            return entered
+        except Exception:
+            print("❌ Unknown timezone. Try again (e.g., Europe/Athens).")
+
+
 def prompt_for_timezone(file_name=None):
     example = "e.g. Europe/Athens"
     file_msg = f" for {file_name}" if file_name else ""
@@ -75,41 +94,29 @@ def prompt_for_timezone(file_name=None):
 
 
 def get_paths_with_prompt():
-    from config import STRYD_FOLDER, GARMIN_CSV_FILE
 
     # Try to load last used paths
-    last_stryd, last_garmin = load_last_used_paths()
-    if last_stryd and last_garmin:
+    stryd_path, garmin_path, _ = load_last_used_paths()
+    if stryd_path and garmin_path:
         print("\n🧠 Last used paths:")
-        print(f"📁 STRYD folder:     {last_stryd}")
-        print(f"📄 Garmin CSV file:  {last_garmin}")
+        print(f"📁 STRYD folder:     {stryd_path}")
+        print(f"📄 Garmin CSV file:  {garmin_path}")
         if prompt_yes_no("♻️  Reuse these paths?"):
-            return last_stryd, last_garmin
+            return stryd_path, garmin_path
 
-    # Ask if user wants defaults
-    print("\n🛠️ Current default paths from config.py:")
-    print(f"📁 STRYD folder:     {STRYD_FOLDER}")
-    print(f"📄 Garmin CSV file:  {GARMIN_CSV_FILE}")
-    if prompt_yes_no("📁 Use default paths from config.py?"):
-        stryd_path = STRYD_FOLDER
-        garmin_file = GARMIN_CSV_FILE
-        if not stryd_path.exists():
-            print(f"📁 Default STRYD folder missing, creating: {stryd_path}")
-            stryd_path.mkdir(parents=True, exist_ok=True)
-        return stryd_path, garmin_file
+    # Manual Stryd folder input
+        else:
+            stryd_path = Path(input("📂 Enter path to STRYD folder: ").strip())
+            if not stryd_path.exists():
+                print(f"📁 STRYD folder not found, creating: {stryd_path}")
+                stryd_path.mkdir(parents=True, exist_ok=True)
 
-    # Manual path input
-    stryd_path = Path(input("📂 Enter path to STRYD folder: ").strip())
-    if not stryd_path.exists():
-        print(f"📁 STRYD folder not found, creating: {stryd_path}")
-        stryd_path.mkdir(parents=True, exist_ok=True)
-
-    # Prompt for Garmin file until found or exit
+        # Prompt for Garmin file until found or exit
     while True:
         garmin_file = Path(input("📄 Enter path to Garmin CSV file: ").strip())
         if garmin_file.exists():
             save_last_used_paths(stryd_path, garmin_file)
-            break
+            return stryd_path, garmin_file
         if not prompt_yes_no("❌ Garmin file not found. Try again?"):
             logging.warning("Aborted: Garmin file not provided. Operation cancelled.")
             return None, None
@@ -122,7 +129,7 @@ def get_paths_with_prompt():
 
 
 def interactive_run_insert(stryd_file, garmin_file, conn, timezone_str=None) -> bool | None:
-
+    from file_parsing import ZeroStrydDataError
     from pipeline import process_csv_pipeline, insert_full_run
     file_name = Path(stryd_file).name
 
@@ -149,6 +156,10 @@ def interactive_run_insert(stryd_file, garmin_file, conn, timezone_str=None) -> 
             if run_exists(conn, start_time_str):
                 logging.info(f"⚠️ Already in DB: {file_name} ({start_time_str})")
                 return False
+
+        except ZeroStrydDataError as e:
+            logging.info(f"⏭️  Skipped: {Path(stryd_file).name} — {e}")
+            return False
 
         except Exception as e:
             logging.error(f"❌ Failed to process {stryd_file}: {e}")

@@ -1,9 +1,10 @@
 import logging
-
 from pathlib import Path
 import pandas as pd
 from db_schema import insert_workout, insert_run, insert_metrics, get_or_create_workout_type
-from file_parsing import normalize_workout_type, load_csv, edit_stryd_csv, calculate_duration, get_matched_garmin_row, garmin_field
+from file_parsing import (normalize_workout_type, load_csv, edit_stryd_csv, calculate_duration,
+                          get_matched_garmin_row, garmin_field, _is_stryd_all_zero,
+                          ZeroStrydDataError)
 
 
 def insert_full_run(stryd_df, workout_name, notes, avg_power, avg_hr, total_m,  conn):
@@ -43,6 +44,8 @@ def process_csv_pipeline(stryd_csv_path, garmin_csv_path, timezone_str=None):
     # Clean, convert, and calculate
     stryd_df = edit_stryd_csv(stryd_df, timezone_str=timezone_str)
 
+    if _is_stryd_all_zero(stryd_df):
+        raise ZeroStrydDataError("Stryd speed/distance is all zeros — skipping.")
 
     # Find matched Garmin row once
     matched = get_matched_garmin_row(stryd_df, garmin_df, timezone_str=timezone_str, tolerance_sec=60)
