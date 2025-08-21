@@ -1,10 +1,8 @@
 import sqlite3
 import pandas as pd
 from pathlib import Path
-import logging
-
 from file_parsing import ZeroStrydDataError
-from utils import interactive_run_insert, _resolve_tz, get_paths_with_prompt
+from utils import interactive_run_insert, resolve_tz, get_paths_with_prompt
 from config import DB_PATH
 
 
@@ -42,7 +40,7 @@ def load_paths():
 def main():
     # # choose tz once; use same for all comparisons
     timezone_str = input("🌍 Please, add a timezone for these runs (e.g. Europe/Athens): ").strip()
-    tz = _resolve_tz(timezone_str)
+    tz = resolve_tz(timezone_str)
 
     stry_folder, garmin_file = get_paths_with_prompt()
     conn = sqlite3.connect(DB_PATH)

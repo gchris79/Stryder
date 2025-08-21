@@ -1,7 +1,7 @@
 import logging
 import sys
-
 from file_parsing import ZeroStrydDataError
+from reports import reports_menu
 from version import get_git_version
 from pathlib import Path
 from path_memory import load_last_used_paths, save_last_used_paths
@@ -13,7 +13,6 @@ from config import DB_PATH
 from utils import prompt_for_timezone, get_paths_with_prompt, ensure_default_timezone
 from pipeline import process_csv_pipeline, insert_full_run
 from queries import view_menu
-from summaries import summary_menu
 
 
 VERSION = get_git_version()
@@ -129,7 +128,7 @@ def launcher_menu():
         print("[1] Add run to DB (batch or single)")
         print("[2] Find unparsed runs")
         print("[3] View parsed runs")
-        print("[4] Summaries")
+        print("[4] Reports")
         print("[5] Reset DB")
         print("[q] Quit")
         choice = input("> ").strip().lower()
@@ -153,7 +152,7 @@ def launcher_menu():
                 view_menu(conn)
 
             elif choice == "4":
-                summary_menu(conn)
+                reports_menu(conn)
 
             elif choice == "5":
                 reset_db(conn)

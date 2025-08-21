@@ -1,12 +1,124 @@
+from dataclasses import dataclass
+from datetime import datetime, date
+from typing import Callable, Iterable, Optional
 import pandas as pd
 import logging
 from zoneinfo import ZoneInfo
 from pathlib import Path
 import tzlocal
 from tabulate import tabulate
-
 from path_memory import load_last_used_paths, save_last_used_paths
 from db_schema import run_exists
+
+
+@dataclass
+class MenuItem:
+    key: str                 # what the user types: "1", "a", "v", etc.
+    label: str               # text shown to the user
+    action: Optional[Callable[[], None]] = None  # optional callback
+
+
+
+def fmt_seconds_to_hms(total_seconds: int) -> str:
+    total_seconds = int(total_seconds or 0)
+    h = total_seconds // 3600
+    m = (total_seconds % 3600) // 60
+    s = total_seconds % 60
+    return f"{h:02}:{m:02}:{s:02}"
+
+
+def fmt_pace(sec_per_km: float | None) -> str:
+    if not sec_per_km or sec_per_km <= 0:
+        return "-"
+    m = int(sec_per_km // 60)
+    s = int(round(sec_per_km % 60))
+    return f'{m}:{s:02}"/km'
+
+
+def hms_to_seconds(s: str) -> int:
+    parts = s.split(":")
+    if len(parts) == 3:
+        h, m, sec = map(int, parts)
+    elif len(parts) == 2:  # allow MM:SS
+        h, m, sec = 0, *map(int, parts)
+    else:
+        raise ValueError(f"Bad time format: {s!r}")
+    return h * 3600 + m * 60 + sec
+
+
+def input_positive_number(prompt: str = "Enter a positive number: ") -> int:
+
+    while True:
+        x = input(prompt).strip()
+        try:
+            number = int(x)
+            if number <= 0:
+                print("Please enter a positive integer (e.g., 4).")
+                continue
+            return number
+        except ValueError:
+            print("Invalid input. Please enter a whole number (e.g., 4).")
+
+
+
+def render_menu(title: str, items: Iterable[MenuItem], footer: str | None = None) -> None:
+    """ Menu Display """
+
+    print(f"\n=== {title} ===")
+    for it in items:
+        print(f"[{it.key}] {it.label}")
+    if footer:
+        print(footer)
+
+
+def prompt_menu(title: str, items: list[MenuItem], allow_back: bool = True, allow_quit: bool = True) -> str:
+    """ Create the core of the menu """
+
+    # Add "back" , "quit" if missing
+    augmented = items.copy()
+    if allow_back and not any(i.key.lower() == "b" for i in augmented):
+        augmented.append(MenuItem("b", "Back"))
+    if allow_quit and not any(i.key.lower() == "q" for i in augmented):
+        augmented.append(MenuItem("q", "Quit"))
+
+    valid_keys = {i.key.lower(): i for i in augmented}
+
+    while True:
+        render_menu(title, augmented)
+        choice = input("> ").strip().lower()
+        if choice in valid_keys:
+            item = valid_keys[choice]
+            if item.action:
+                item.action()  # optional: execute and then either return or loop
+            return item.key  # return the chosen key so caller decides what to do
+        print("⚠️ Invalid choice. Try again.")
+
+
+def as_date(d: datetime | date) -> date:
+    return d.date() if isinstance(d, datetime) else d
+
+
+def string_to_datetime(date_str:str) -> datetime:
+
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(date_str, fmt)
+        except ValueError:
+            continue
+    raise ValueError (f"❌ Invalid date format: {date_str}")
+
+
+def weekly_table_fmt(weekly:pd.DataFrame) -> pd.DataFrame:
+    """Format weekly report table datetime fields to strings"""
+    out = weekly.copy()
+    # Loop to ensure that pandas will not traceback when given 1 week for input
+    for col in ("week_start", "week_end"):
+        if col in out.columns:
+            out[col] = pd.to_datetime(out[col], errors="coerce")
+
+    out["Week Start"] = out["week_start"].dt.strftime("%Y-%m-%d")
+    out["Week End"] = out["week_end"].dt.strftime("%Y-%m-%d")
+    return out[["Week Start", "Week End","Runs","Distance (km)","Duration","Avg Power", "Avg HR"]]
 
 
 def print_table(df, tablefmt=None, floatfmt=".2f",
@@ -35,7 +147,8 @@ def print_table(df, tablefmt=None, floatfmt=".2f",
             colalign=list(colalign),  # ensure it's a list
         ))
 
-def _resolve_tz(timezone_str: str | None) -> ZoneInfo:
+
+def resolve_tz(timezone_str: str | None) -> ZoneInfo:
     return ZoneInfo(timezone_str) if timezone_str else ZoneInfo(tzlocal.get_localzone_name())
 
 

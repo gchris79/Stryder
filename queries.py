@@ -1,9 +1,6 @@
 import pandas as pd
-
-from utils import get_default_timezone, print_table
+from utils import get_default_timezone, print_table, fmt_seconds_to_hms, MenuItem, prompt_menu
 from zoneinfo import ZoneInfo
-from summaries import _fmt_hms
-
 
 pd.set_option('display.max_rows', None)  # show all rows
 pd.set_option('display.max_columns', None) # show all columns
@@ -14,7 +11,7 @@ def format_df_columns(df):
     # Format the columns of the dataframe for display
     if df is None or getattr(df, "empty", True):
         print("ℹ️ No results.")
-        return
+
 
     # Format distance → km
     if "distance (m)" in df.columns:
@@ -23,7 +20,7 @@ def format_df_columns(df):
 
     # Format duration
     if "duration_sec" in df.columns:
-        df["Duration"] = df["duration_sec"].fillna(0).astype(int).apply(_fmt_hms)
+        df["Duration"] = df["duration_sec"].fillna(0).astype(int).apply(fmt_seconds_to_hms)
         df.drop(columns=["duration_sec"], inplace=True)
 
 
@@ -98,34 +95,33 @@ def get_workout_by_keyword(keyword,conn):
 # View (command) menu
 def view_menu(conn):
 
-    while True:
-        choice = input(
-            "Choose what to view:\n"
-            "[1] All workouts\n"
-            "[2] Runs by date\n"
-            "[3] Search keyword\n"
-            "[4] Exit\n> "
-        ).strip()
-        if choice == "1":
-            df = get_all_workouts(conn)
-            render_workouts(df)
+    items1 = [
+        MenuItem("1", "All runs"),
+        MenuItem("2", "Runs by date"),
+        MenuItem("3", "Runs by keyword"),
+    ]
 
-        elif choice == "2":
-            start_date = input("Start date (YYYY-MM-DD): ")
-            end_date = input("End date (YYYY-MM-DD): ")
-            start_full = f"{start_date} 00:00:00"
-            end_full = f"{end_date} 23:59:59"
-            df = get_workouts_bydate(start_full, end_full, conn)
-            render_workouts(df)
+    choice1 = prompt_menu("View Runs", items1)
 
-        elif choice == "3":
-            keyword = input("Search workouts by keyword: ")
-            df = get_workout_by_keyword(keyword,conn)
-            render_workouts(df)
+    if choice1 == "1":
+        df = get_all_workouts(conn)
+        render_workouts(df)
 
-        elif choice == "4":
-            break
-        else:
-            print("Invalid choice, try again.")
+    elif choice1 == "2":
+        start_date = input("Start date (YYYY-MM-DD): ")
+        end_date = input("End date (YYYY-MM-DD): ")
+        start_full = f"{start_date} 00:00:00"
+        end_full = f"{end_date} 23:59:59"
+        df = get_workouts_bydate(start_full, end_full, conn)
+        render_workouts(df)
 
-    conn.close()
+    elif choice1 == "3":
+        keyword = input("Search workouts by keyword: ")
+        df = get_workout_by_keyword(keyword, conn)
+        render_workouts(df)
+
+    elif choice1 == "b":
+        return
+
+    elif choice1 == "q":
+        exit(0)

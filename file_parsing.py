@@ -2,7 +2,7 @@ import logging
 import pandas as pd
 from datetime import timedelta
 from zoneinfo import ZoneInfo
-from utils import _resolve_tz
+from utils import resolve_tz
 
 
 class ZeroStrydDataError(Exception):
@@ -35,7 +35,7 @@ def edit_stryd_csv(df, timezone_str: str | None = None):
     # Convert Unix timestamps to local time using user-specified timezone
     df['Local Timestamp'] = pd.to_datetime(
         df['Timestamp'], unit='s', utc=True
-    ).dt.tz_convert(_resolve_tz(timezone_str))
+    ).dt.tz_convert(resolve_tz(timezone_str))
 
     # Move the Local Timestamp to the first column
     cols = ['Local Timestamp'] + [col for col in df.columns if col != 'Local Timestamp']
@@ -76,7 +76,7 @@ def normalize_workout_type(raw_name):
 
 def get_matched_garmin_row(stryd_df, garmin_df, timezone_str: str | None = None, tolerance_sec: int = 60):
 
-    tz = _resolve_tz(timezone_str)
+    tz = resolve_tz(timezone_str)
 
     # Stryd start time → UTC
     stryd_start_time = stryd_df.loc[0, 'Local Timestamp']
