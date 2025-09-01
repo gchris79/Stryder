@@ -4,7 +4,7 @@ import pandas as pd
 from utils import get_default_timezone, prompt_menu, MenuItem, fmt_seconds_to_hms, input_positive_number, \
     string_to_datetime, as_date
 from visualizations import display_menu
-
+from report_single import single_report_menu
 
 def weekly_report(
         conn,
@@ -126,7 +126,8 @@ def get_report_bounds(
         # inclusive of end_date: make end_local = next day 00:00
         start_local = datetime.combine(start_date, time.min, tzinfo=tz)
         end_local = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=tz)
-        label = f"{start_local:%b %d}–{(end_local - timedelta(seconds=1)):%b %d}"
+        label = (f"{start_local:%b %d} – "
+                 f"{(end_local - timedelta(seconds=1)):%b %d}")
     else:
         # --- Relative windows (weeks) ---
         if weeks is None or weeks <= 0:
@@ -137,9 +138,9 @@ def get_report_bounds(
 
         if mode == "calendar":
             # Monday of the anchor week
-            anchor_monday = anchor_day - timedelta(days=anchor_day.weekday())  # Mon=0
-            end_monday = anchor_monday + timedelta(days=7)  # next Monday 00:00
-            start_monday = end_monday - timedelta(days=7 * weeks)  # N weeks back
+            anchor_monday = anchor_day - timedelta(days=anchor_day.weekday())  # Monday 00:00 of anchor week
+            end_monday = anchor_monday      # last completed boundary
+            start_monday = end_monday - timedelta(days=7 * weeks)
 
             start_local = datetime.combine(start_monday, time.min, tzinfo=tz)
             end_local = datetime.combine(end_monday, time.min, tzinfo=tz)
@@ -147,20 +148,21 @@ def get_report_bounds(
             # Nice label covering the whole span
             if weeks != 1:
                 label = (f"{weeks} calendar weeks "
-                     f"({start_local:%b %d}–{(end_local - timedelta(seconds=1)):%b %d})")
+                     f"({start_local:%b %d} "
+                         f"– {(end_local - timedelta(seconds=1)):%b %d})")
             else: label = (f"{weeks} calendar week "
-                     f"({start_local:%b %d}–{(end_local - timedelta(seconds=1)):%b %d})")
+                     f"({start_local:%b %d} – {(end_local - timedelta(seconds=1)):%b %d})")
 
         elif mode == "rolling":
             # rolling = any 7-day windows; here we just give a continuous N*7 days window
             end_local = datetime.combine(anchor_day + timedelta(days=1), time.min, tzinfo=tz)
             start_local = end_local - timedelta(days=7 * weeks)
             if weeks != 1:
-                label = (f"{weeks} calendar weeks "
-                         f"({start_local:%b %d}–{(end_local - timedelta(seconds=1)):%b %d})")
+                label = (f"{weeks} rolling weeks "
+                         f"({start_local:%b %d} – {(end_local - timedelta(seconds=1)):%b %d})")
             else:
-                label = (f"{weeks} calendar week "
-                         f"({start_local:%b %d}–{(end_local - timedelta(seconds=1)):%b %d})")
+                label = (f"{weeks} rolling week "
+                         f"({start_local:%b %d} – {(end_local - timedelta(seconds=1)):%b %d})")
         else:
             raise ValueError("Unsupported mode. Use 'calendar' or 'rolling'.")
 
@@ -179,6 +181,7 @@ def reports_menu(conn):
         MenuItem("1", "Last N weeks"),
         MenuItem("2", "N weeks ending on a date of your choice"),
         MenuItem("3", "Custom date range"),
+        MenuItem("4", "Single run report")
     ]
 
     items2 = [
@@ -226,6 +229,11 @@ def reports_menu(conn):
         end_dt = string_to_datetime(end_date)
         label, weekly = weekly_report(conn, tz, mode="rolling", start_date=str_dt, end_date=end_dt)
         display_menu(label, weekly)
+
+    # Single run report
+    elif choice1 == "4":
+        run_id = int(input("Please enter run_id for the run you are interested in: "))
+        single_report_menu(conn, run_id)
 
     elif choice1 == "b":
         return

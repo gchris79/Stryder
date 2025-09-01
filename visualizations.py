@@ -1,54 +1,85 @@
 import os
+from pathlib import Path
+from typing import Literal
+
 import pandas as pd
 from datetime import date
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 from matplotlib.ticker import FuncFormatter, Locator, MultipleLocator
 import matplotlib.dates as mdates
 from utils import print_table, prompt_menu, MenuItem, weekly_table_fmt, hms_to_seconds
 
 
-def plot_distance_over_time(weekly, label):
-    return plot_weekly_series(weekly, y_col="Distance (km)", label=label)
+def plot_distance_over_time(df: pd.DataFrame, *, y_col: str, label: str, ax=None) -> Axes:
+    return plot_weekly_series(df, y_col="Distance (km)", label=label)
 
 
-def plot_duration_over_time(weekly, label):
-    df = weekly.copy()
-    df["Hours"] = df["Duration"].apply(hms_to_seconds)
+def plot_duration_over_time(df: pd.DataFrame, *, y_col: str, label: str, ax=None) -> Axes:
+    df2 = df.copy()
+    df2["Hours"] = df2["Duration"].apply(hms_to_seconds)
 
     fmt_hm = FuncFormatter(lambda y, pos: f"{int(y//3600):02}:{int((y%3600)//60):02}")
     loc_30min = MultipleLocator(1800)  # ticks every 30 minutes
 
     return plot_weekly_series(
-        df, y_col="Hours", label=label,
+        df2, y_col="Hours", label=label,
         y_formatter=fmt_hm, y_locator=loc_30min
     )
 
 
-def plot_power_over_time(weekly, label):
-    return plot_weekly_series(weekly, y_col="Avg Power", label=label)
+def plot_power_over_time(df: pd.DataFrame, *, y_col: str, label: str, ax=None) -> Axes:
+    return plot_weekly_series(df, y_col="Avg Power", label=label)
 
 
-def plot_hr_over_time(weekly, label):
-    return plot_weekly_series(weekly, y_col="Avg HR", label=label)
+def plot_hr_over_time(df: pd.DataFrame, *, y_col: str, label: str, ax=None) -> Axes:
+    return plot_weekly_series(df, y_col="Avg HR", label=label)
 
 
-def show_table_and_plot(df, plot_func,*args,**kwargs):
-    """
-      Print a DataFrame as table and show a plot at the same time.
+def what_to_print(
+    display: Literal["table", "graph", "both"],
+    label: str,
+    weekly: pd.DataFrame,
+    y_axis: Literal["distance","time","power","hr"] | None = None,
+    export: bool = False,
+    out_dir: str | Path = Path("plots"),
+    show: bool = True,
+    dpi: int = 300,
+) -> Path | None:  # return saved path if you export, else None
+    """ The orchestrator that set what will be printed. """
 
-      Parameters
-      ----------
-      df : pd.DataFrame
-          The summary table to print.
-      plot_func : callable
-          A plotting function that takes the DataFrame as first argument.
-      *args, **kwargs
-          Extra arguments passed to the plotting function.
-      """
-    print_table(weekly_table_fmt(df))
-    plt.close("all")
-    plot_func(df, *args, **kwargs)
-    plt.show(block=False)
+    if display == "table":
+        print(f"\n🗓️ {label}")
+        print_table(weekly_table_fmt(weekly))
+
+    elif display == "graph":
+        plot_func, pretty_y, y_tag = graph_menu(label, weekly)
+        ax = plot_func(weekly, y_col=pretty_y, label=label)
+        fig = ax.figure
+        if show is True:
+            plt.show(block=False)
+        if export:
+            save_plot(out_dir,dpi,y_tag)
+        #plt.close(fig)
+
+    elif display == "both":
+        plot_func, pretty_y, y_tag = graph_menu(label, weekly)
+        ax = plot_func(weekly, y_col=pretty_y, label=label)
+        fig = ax.figure
+        if show is True:
+            plt.show(block=False)
+        if export:
+            save_plot(out_dir,dpi,y_tag)
+        print(f"\n🗓️ {label}")
+        print_table(weekly_table_fmt(weekly))
+        #plt.close(fig)
+
+
+def save_plot(path : Path, dpi, y_tag):
+    """ Saves a plot """
+    os.makedirs(path, exist_ok=True)
+    filename = f"{path}/weekly_km_{date.today().isoformat()}_{y_tag}.png"
+    plt.savefig(filename, dpi=dpi, bbox_inches="tight")
 
 
 def plot_weekly_series(
@@ -102,36 +133,29 @@ def plot_weekly_series(
     return ax
 
 
-def save_plot():
-    os.makedirs("plots", exist_ok=True)
-    filename = f"plots/weekly_km_{date.today().isoformat()}.png"
-    plt.savefig(filename, dpi=300, bbox_inches="tight")
-
-
-def graph_menu(weekly):
+def graph_menu(label, weekly):
 
 
     items1 = [
         MenuItem("1", "Weekly Distance"),
         MenuItem("2", "Weekly Duration"),
-        MenuItem("3", "Weekly Average Heart Rate"),
-        MenuItem("4", "Weekly Average Power"),
+        MenuItem("3", "Weekly Average Power"),
+        MenuItem("4", "Weekly Average Heart Rate"),
     ]
 
     choice1 = prompt_menu("Graphs", items1)
 
-    # 1) Last N weeks
     if choice1 == "1":
-        show_table_and_plot(weekly, plot_distance_over_time, "Distance (km)")
+        return plot_distance_over_time, "Distance (km)", "distance"
 
     elif choice1 == "2":
-        show_table_and_plot(weekly, plot_duration_over_time, "Duration")
+        return plot_duration_over_time, "Duration", "duration"
 
     elif choice1 == "3":
-        show_table_and_plot(weekly, plot_hr_over_time, "Average Heart Rate")
+        return plot_power_over_time, "Average Power (W/kg)", "power"
 
     elif choice1 == "4":
-        show_table_and_plot(weekly, plot_power_over_time, "Average Power (W/kg)")
+        return plot_hr_over_time, "Average Heart Rate", "HR"
 
     elif choice1 == "b":
         return
@@ -149,28 +173,17 @@ def display_menu(label, weekly):
 
     choice1 = prompt_menu("Display", items1)
 
-    if choice1 == "1":
-        print(f"\n🗓️ {label}")
-        print_table(weekly_table_fmt(weekly))
+    if choice1 in ["1"]:
+        what_to_print("table", label, weekly)
 
+    elif choice1 in ["2"]:
+        what_to_print("graph", label, weekly)
 
-    elif choice1 == "2":
-        graph_menu(weekly)
-
-
-
-    elif choice1 == "3":
-        print(f"\n🗓️ {label}")
-        graph_menu(weekly)
-
-
-
-
+    elif choice1 in ["3"]:
+        what_to_print("both", label, weekly)
 
     elif choice1 == "b":
         return
-
-
 
     elif choice1 == "q":
         exit(0)

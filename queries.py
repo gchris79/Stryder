@@ -8,7 +8,8 @@ pd.set_option('display.width', 150)
 
 
 def format_df_columns(df):
-    # Format the columns of the dataframe for display
+    """ Format the columns of the dataframe for display """
+
     if df is None or getattr(df, "empty", True):
         print("ℹ️ No results.")
 

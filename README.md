@@ -1,6 +1,46 @@
 # Stryder CLI 🏃‍♂️
 
-As a hobbyist runner getting into coding, I built this command-line tool to help organize and analyze my running data using CSV files from Stryd and Garmin. It stores the cleaned data in a local SQLite database for easy access and future analysis.
+As a hobbyist runner getting into coding, I built this command-line tool to help organize and analyze my running data using CSV files from Stryd footpod. It stores the cleaned data in a local SQLite database for easy access and future analysis.
+
+---
+
+## 📽️ Demo
+### 1. Clean CLI Menu
+Navigate easily through the launcher menu.
+
+<img src="assets/CLI_menu.gif" width="700">
+
+---
+
+### 2. Weekly & Rolling Reports
+Generate 1-week, 4-week, or 12-week reports with distance, avg HR, power, and duration.
+
+<img src="assets/reports_demo.gif" width="700">
+
+---
+
+### 3. Visual Reports
+Visualize your training load with automatic plots.
+
+![Weekly Plot](assets/weekly_plot.png)
+
+---
+
+### 4. Detailed Views
+Inspect any run in detail with normalized workout names, timestamps, and metrics.
+
+<img src="assets/run_view.png" width="700">
+
+---
+
+---
+
+## ✨ Features
+- **Interactive CLI menu** — easy navigation through all options  
+- **Import Stryd CSVs** and store them in a local SQLite database  
+- **View every run** with clean tabulated CLI tables  
+- **Custom weekly reports** with averages for distance, duration, power, and HR  
+- **Export visual charts** to track mileage, power, and heart rate trends 
 
 ---
 
@@ -46,7 +86,7 @@ It will be named something like:
 
 - 🛠️ Initialize or reset the SQLite database
 - 📂 Batch or single import Stryd CSVs with automatic Garmin run matching
-- 📄 Summaries of last week of 4 week period
+- 📄 Weekly reports of mileage,duration,avg power and HR
 - 🔍 Detect and handle unmatched Stryd runs
 - 🧠 Remembers last-used folders between sessions
 - 🌍 Timezone handling with user prompting and suggestions
@@ -56,18 +96,11 @@ It will be named something like:
 
 ## 🖥️ Example CLI Output
 
-🌀 Stryder CLI v1.3.0
+🌀 Stryder CLI v1.4.0
 
-✅ Parsed files in DB: 287
+---
 
-❗ Unparsed files: 15
-
-🌍 Timezone for 5151xxxx.csv: Europe/Athens
-
-✅ Match found: "Evening Run" at 2023-06-22 19:25:00+03:00
-
-✅ Run saved: Workout ID 103, Run ID 195
-
+### 🖥️ Demo
 
 ---
 
@@ -87,15 +120,12 @@ python Stryder_CLI.py --help
 ---
 
 ## 🛠 Tech Stack
-Python 3.9+
 
-pandas
-
-SQLite
-
-tzlocal
-
-argparse, pathlib, logging
+- Python 3.11
+- SQLite
+- Pandas
+- Matplotlib
+- Tabulate
 
 
 ---
@@ -110,9 +140,8 @@ These are planned or possible features for future versions of Stryder:
 - [x] Store last-used file paths
 - [x] Add CLI commands for viewing runs and summaries
 - [x] Weekly/monthly mileage summaries
-- [ ] Graphs: power over time, pace over time, elevation
+- [x] Graphs: power, distance, duration and HR over time 
 - [ ] Support .fit/.tcx/.gpx file parsing
-- [ ] Allow manual tagging of runs (e.g., "race", "long run")
 - [ ] Optional GUI (e.g., Streamlit or PyQt)
 - [ ] Export to Excel or CSV with filters
 

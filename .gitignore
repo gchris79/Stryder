@@ -3,6 +3,7 @@
 __pycache__/
 data/
 logs/
+plots/
 *.log
 *.pyc
 runs_data.db
