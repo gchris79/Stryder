@@ -82,28 +82,6 @@ It will be named something like:
 
 ---
 
-## ⚙️ Features
-
-- 🛠️ Initialize or reset the SQLite database
-- 📂 Batch or single import Stryd CSVs with automatic Garmin run matching
-- 📄 Weekly reports of mileage,duration,avg power and HR
-- 🔍 Detect and handle unmatched Stryd runs
-- 🧠 Remembers last-used folders between sessions
-- 🌍 Timezone handling with user prompting and suggestions
-- ✅ Ensures only Garmin-matched runs are stored — unless overridden
-
----
-
-## 🖥️ Example CLI Output
-
-🌀 Stryder CLI v1.4.0
-
----
-
-### 🖥️ Demo
-
----
-
 ## ▶️ Getting Started
 
 ```bash
