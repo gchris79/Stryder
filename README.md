@@ -59,7 +59,6 @@ These are your **detailed per-run files**, exported from Stryd PowerCenter or th
 
 💡 You’ll be prompted to select this folder during batch import.
 
----
 
 ### ✅ Garmin CSV Export
 
