@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime, date
 from typing import Callable, Iterable, Optional
+
+import numpy as np
 import pandas as pd
 import logging
 from zoneinfo import ZoneInfo
@@ -18,8 +20,7 @@ class MenuItem:
     action: Optional[Callable[[], None]] = None  # optional callback
 
 
-
-def fmt_seconds_to_hms(total_seconds: int) -> str:
+def fmt_sec_to_hms(total_seconds: int) -> str:
     total_seconds = int(total_seconds or 0)
     h = total_seconds // 3600
     m = (total_seconds % 3600) // 60
@@ -27,15 +28,13 @@ def fmt_seconds_to_hms(total_seconds: int) -> str:
     return f"{h:02}:{m:02}:{s:02}"
 
 
-def fmt_pace(sec_per_km: float | None) -> str:
-    if not sec_per_km or sec_per_km <= 0:
-        return "-"
-    m = int(sec_per_km // 60)
-    s = int(round(sec_per_km % 60))
-    return f'{m}:{s:02}"/km'
+def fmt_pd_sec_to_hms(sec,pos) -> str:
+    sec = int(sec)
+    h, m = divmod(sec // 60, 60)
+    return f"{h:02}:{m:02}"
 
 
-def hms_to_seconds(s: str) -> int:
+def fmt_hms_to_sec(s: str) -> int:
     parts = s.split(":")
     if len(parts) == 3:
         h, m, sec = map(int, parts)
@@ -44,6 +43,26 @@ def hms_to_seconds(s: str) -> int:
     else:
         raise ValueError(f"Bad time format: {s!r}")
     return h * 3600 + m * 60 + sec
+
+def fmt_2dp(kN_per_m: float | None) -> str:
+    if kN_per_m is None or pd.isna(kN_per_m):
+        return "-"
+    return f"{kN_per_m:.1f}"
+
+
+def fmt_pace(min_per_km: float | None, pos) -> str:
+    if not np.isfinite(min_per_km):
+        return ""
+    total_sec = int(round(min_per_km * 60))
+    m, s = divmod(total_sec, 60)
+    return f"{m}:{s:02d}/km"
+
+
+def calc_df_to_pace(df: pd.DataFrame, seconds_col : str, meters_col : str) -> pd.Series:
+    elapsed_sec = (df[seconds_col] - df[seconds_col].iloc[0]).dt.total_seconds()
+    dist_km = (df[meters_col] - df[meters_col].iloc[0]) / 1000.0
+    pace = (elapsed_sec / dist_km.replace(0,np.nan)) / 60
+    return pace # min/km
 
 
 def input_positive_number(prompt: str = "Enter a positive number: ") -> int:
@@ -316,3 +335,13 @@ def interactive_run_insert(stryd_file, garmin_file, conn, timezone_str=None) -> 
 
         else:
             print("❓ Invalid choice. Try again.")
+
+METRICS = {
+    "power" : {"key": "power_w", "label": "Power", "unit": "W/kg", "formatter": fmt_2dp},
+    "duration" : {"key": "duration",  "label": "Hours", "unit": "h:m", "formatter": fmt_sec_to_hms},
+    "pace" : {"key": "pace_s_per_km", "label": "Pace", "unit": "min/km", "formatter": fmt_pace},
+    "ground" : {"key": "ground_time_ms", "label": "Ground Time", "unit": "ms", "formatter": int},
+    "lss" : {"key": "lss", "label": "Leg Spring Stiff", "unit": "kN/m", "formatter": fmt_2dp},
+    "cadence": {"key": "cadence_spm", "label": "Cadence", "unit": "spm", "formatter": int},
+    "vo" : {"key": "vertical_osc_mm", "label": "Vertical Osc", "unit": "mm", "formatter": fmt_2dp},
+}

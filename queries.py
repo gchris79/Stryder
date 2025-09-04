@@ -1,5 +1,5 @@
 import pandas as pd
-from utils import get_default_timezone, print_table, fmt_seconds_to_hms, MenuItem, prompt_menu
+from utils import get_default_timezone, print_table, fmt_sec_to_hms, MenuItem, prompt_menu
 from zoneinfo import ZoneInfo
 
 pd.set_option('display.max_rows', None)  # show all rows
@@ -21,7 +21,7 @@ def format_df_columns(df):
 
     # Format duration
     if "duration_sec" in df.columns:
-        df["Duration"] = df["duration_sec"].fillna(0).astype(int).apply(fmt_seconds_to_hms)
+        df["Duration"] = df["duration_sec"].fillna(0).astype(int).apply(fmt_sec_to_hms)
         df.drop(columns=["duration_sec"], inplace=True)
 
 

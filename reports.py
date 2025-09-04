@@ -1,10 +1,10 @@
 from datetime import timedelta, datetime, time
 from zoneinfo import ZoneInfo
 import pandas as pd
-from utils import get_default_timezone, prompt_menu, MenuItem, fmt_seconds_to_hms, input_positive_number, \
+from utils import get_default_timezone, prompt_menu, MenuItem, fmt_sec_to_hms, input_positive_number, \
     string_to_datetime, as_date
 from visualizations import display_menu
-from report_single import single_report_menu
+
 
 def weekly_report(
         conn,
@@ -91,7 +91,7 @@ def weekly_report(
     agg["week_end"]   = agg["week_start"] + timedelta(days=7)
 
     agg["Distance (km)"] = agg["km"].round(2)
-    agg["Duration"] = agg["sec"].apply(fmt_seconds_to_hms)
+    agg["Duration"] = agg["sec"].apply(fmt_sec_to_hms)
 
     agg["Avg Power"] = agg["pow"]
     agg["Avg HR"] = agg["HR"]
@@ -173,6 +173,60 @@ def get_report_bounds(
     return start_utc, end_utc, label
 
 
+def get_single_run_query(conn, run_id):
+    query = """
+        SELECT
+            m.id,
+            m.run_id,
+            m.datetime AS dt,
+            m.power,
+            m.stryd_distance,
+            m.ground_time,
+            m.stiffness,
+            m.cadence,
+            m.vertical_oscillation
+        FROM metrics m 
+        JOIN runs r ON m.run_id = r.id
+        WHERE m.run_id = ? 
+        ORDER BY m.datetime ASC
+    """
+    df = pd.read_sql(query, conn, params=(run_id,), parse_dates=["dt"])
+
+    # Ensure that dt is datetime object and not string
+    df["dt"] = pd.to_datetime(df["dt"], errors="coerce")
+
+    # Ensure that columns are numeric
+    for c in ["power", "stryd_distance", "ground_time", "stiffness", "cadence", "vertical_oscillation"]:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+
+    return df
+
+
+def render_single_run_report(df: pd.DataFrame) -> pd.DataFrame:
+
+    run_id = int(df["run_id"].iloc[0])
+
+    # Calculate duration from datetime
+    duration_sec = (df["dt"].max() - df["dt"].min()).total_seconds()
+
+    # Calculate total distance and format in km
+    distance_km = (df["stryd_distance"].max() or 0) / 1000.0
+
+    # Building the report df
+    report = pd.DataFrame([{
+        "run_id": run_id,
+        "Duration": fmt_sec_to_hms(duration_sec),
+        "Distance (km)" : round(distance_km, 2),
+        "Avg Power" : round(df["power"].mean(),1),
+        "Avg Ground Time" : round(df["ground_time"].mean(),1),
+        "Avg LSS" : round(df["stiffness"].mean(), 1),
+        "Avg Cadence" : round(df["cadence"].mean(), 1),
+        "Avg Vertical Osc." : round(df["vertical_oscillation"].mean(), 2),
+
+    }])
+    return report
+
+
 def reports_menu(conn):
 
     tz = get_default_timezone()
@@ -190,50 +244,57 @@ def reports_menu(conn):
     ]
 
     choice1 = prompt_menu("Reports", items1)
+    # Fork for the type of the report single or batch
+    if choice1 in ["1","2","3"]:
+        df_type = "batch"
+        # 1) Last N weeks
+        if choice1 == "1":
+            choice2 = prompt_menu("Group the weeks as", items2)
+            if choice2 in ["1", "2"]:
+                weeks = input_positive_number("How many weeks? ")
+                mode = "rolling" if choice2 == "1" else "calendar"
+                label, weekly = weekly_report(conn, tz, mode=mode, weeks=weeks)
+                display_menu(label, weekly, df_type)
 
-    # 1) Last N weeks
-    if choice1 == "1":
-        choice2 = prompt_menu("Group the weeks as", items2)
-        if choice2 in ["1", "2"]:
-            weeks = input_positive_number("How many weeks? ")
-            mode = "rolling" if choice2 == "1" else "calendar"
-            label, weekly = weekly_report(conn, tz, mode=mode, weeks=weeks)
-            display_menu(label, weekly)
+            elif choice1 == "b":
+                return
+            elif choice1 == "q":
+                exit(0)
 
-        elif choice1 == "b":
-            return
-        elif choice1 == "q":
-            exit(0)
+        # N weeks ending on a date of your choice
+        elif choice1 == "2":
+            choice2 = prompt_menu("Group the weeks as", items2)
+            if choice2 in ["1", "2"]:
+                weeks = input_positive_number("How many weeks? ")
+                end_date = input("Give the end date of the report (YYYY-MM-DD): ")
+                end_dt = string_to_datetime(end_date)
+                mode = "rolling" if choice2 == "1" else "calendar"
+                label, weekly = weekly_report(conn, tz, mode=mode, weeks=weeks, end_date=end_dt)
+                display_menu(label, weekly, df_type)
 
-    # N weeks ending on a date of your choice
-    elif choice1 == "2":
-        choice2 = prompt_menu("Group the weeks as", items2)
-        if choice2 in ["1", "2"]:
-            weeks = input_positive_number("How many weeks? ")
+            elif choice1 == "b":
+                return
+            elif choice1 == "q":
+                exit(0)
+
+        # Custom date range
+        elif choice1 == "3":
+            start_date = input("Give the start date of the report (YYYY-MM-DD): ")
+            str_dt = string_to_datetime(start_date)
             end_date = input("Give the end date of the report (YYYY-MM-DD): ")
             end_dt = string_to_datetime(end_date)
-            mode = "rolling" if choice2 == "1" else "calendar"
-            label, weekly = weekly_report(conn, tz, mode=mode, weeks=weeks, end_date=end_dt)
-            display_menu(label, weekly)
+            label, weekly = weekly_report(conn, tz, mode="rolling", start_date=str_dt, end_date=end_dt)
+            display_menu(label, weekly, df_type)
 
-        elif choice1 == "b":
-            return
-        elif choice1 == "q":
-            exit(0)
-
-    # Custom date range
-    elif choice1 == "3":
-        start_date = input("Give the start date of the report (YYYY-MM-DD): ")
-        str_dt = string_to_datetime(start_date)
-        end_date = input("Give the end date of the report (YYYY-MM-DD): ")
-        end_dt = string_to_datetime(end_date)
-        label, weekly = weekly_report(conn, tz, mode="rolling", start_date=str_dt, end_date=end_dt)
-        display_menu(label, weekly)
-
-    # Single run report
     elif choice1 == "4":
+        # Single run report
+        df_type = "single"
         run_id = int(input("Please enter run_id for the run you are interested in: "))
-        single_report_menu(conn, run_id)
+        df = get_single_run_query(conn, run_id)
+        if df.empty:
+            print(f"No samples found for run_id={run_id}.")
+            return
+        display_menu("",df, df_type)
 
     elif choice1 == "b":
         return
