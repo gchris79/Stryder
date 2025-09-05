@@ -1,6 +1,8 @@
 from datetime import timedelta, datetime, time
 from zoneinfo import ZoneInfo
 import pandas as pd
+
+from queries import view_menu
 from utils import get_default_timezone, prompt_menu, MenuItem, fmt_sec_to_hms, input_positive_number, \
     string_to_datetime, as_date
 from visualizations import display_menu
@@ -214,7 +216,7 @@ def render_single_run_report(df: pd.DataFrame) -> pd.DataFrame:
 
     # Building the report df
     report = pd.DataFrame([{
-        "run_id": run_id,
+        "Run ID": run_id,
         "Duration": fmt_sec_to_hms(duration_sec),
         "Distance (km)" : round(distance_km, 2),
         "Avg Power" : round(df["power"].mean(),1),
@@ -289,12 +291,26 @@ def reports_menu(conn):
     elif choice1 == "4":
         # Single run report
         df_type = "single"
-        run_id = int(input("Please enter run_id for the run you are interested in: "))
-        df = get_single_run_query(conn, run_id)
-        if df.empty:
-            print(f"No samples found for run_id={run_id}.")
+        df_view = view_menu(conn, "for_report")
+        run_id = int(input("Please enter Run ID for the run you are interested in: "))
+        if (df_view["Run ID"].eq(run_id)).any():    # check if run_id is in dataframe
+            row = df_view.loc[df_view["Run ID"] == run_id].squeeze()    # squeeze row for printing
+            datetime_col = [c for c in df_view.columns if c.startswith("DateTime")][0]      # find datetime column
+            tz = datetime_col.split("(", 1)[1][:-1]         # get timezone string from splitting
+            cool_string = (
+                f"\nRun {row['Run ID']} | {row[datetime_col]} ({tz}) | "
+                f"{row['Workout Name']} | {row['Distance (km)']} km | {row['Duration']}"
+            )
+            print(cool_string)      # print a cool string to show details about the picked run before the report
+
+            df = get_single_run_query(conn, run_id)
+            if df.empty:
+                print(f"Empty dataframe.")
+                return
+            display_menu("",df, df_type)
+        else:
+            print(f"\nCould not find this run.")
             return
-        display_menu("",df, df_type)
 
     elif choice1 == "b":
         return

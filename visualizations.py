@@ -7,8 +7,7 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.ticker import FuncFormatter, Locator, MultipleLocator
 import matplotlib.dates as mdates
-from reports import render_single_run_report
-from utils import print_table, prompt_menu, MenuItem, weekly_table_fmt, fmt_hms_to_sec, fmt_sec_to_hms, \
+from utils import print_table, prompt_menu, MenuItem, weekly_table_fmt, fmt_hms_to_sec, \
     fmt_pd_sec_to_hms, calc_df_to_pace, fmt_pace
 
 
@@ -51,6 +50,8 @@ def what_to_print(
 ) -> Path | None:  # return saved path if you export, else None
     """ The orchestrator that set what will be printed. """
 
+    from reports import render_single_run_report
+
     if display == "table":
         if  report == "single":
             single_run = render_single_run_report(df)
@@ -70,7 +71,7 @@ def what_to_print(
                 save_plot(out_dir, dpi, y_tag)
 
         elif report == "batch":
-            plot_func, pretty_y, y_tag = graph_menu_batch(label, df)
+            plot_func, pretty_y, y_tag = graph_menu_batch()
             ax = plot_func(df, y_col=pretty_y, label=label)
             fig = ax.figure
             if show:
@@ -92,7 +93,7 @@ def what_to_print(
             single_run = render_single_run_report(df)
             print_table(single_run)
         elif report == "batch":
-            plot_func, pretty_y, y_tag = graph_menu_batch(label, df)
+            plot_func, pretty_y, y_tag = graph_menu_batch()
             ax = plot_func(df, y_col=pretty_y, label=label)
             fig = ax.figure
             if show:
@@ -272,7 +273,7 @@ def graph_menu_single():
         exit(0)
 
 
-def graph_menu_batch(label, weekly):
+def graph_menu_batch():
 
 
     items1 = [
