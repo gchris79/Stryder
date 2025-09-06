@@ -149,7 +149,7 @@ def launcher_menu():
                 add_import_menu(conn)
 
             elif choice == "3":
-                view_menu(conn)
+                view_menu(conn, "for_views")
 
             elif choice == "4":
                 reports_menu(conn)
