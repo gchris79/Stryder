@@ -1,8 +1,8 @@
 import sqlite3
 import pandas as pd
 from pathlib import Path
-from file_parsing import ZeroStrydDataError
-from utils import interactive_run_insert, resolve_tz, get_paths_with_prompt
+from utils import interactive_run_insert, get_paths_with_prompt
+from date_utilities import resolve_tz
 from config import DB_PATH
 
 
@@ -23,19 +23,6 @@ def convert_first_timestamp_to_str(file_path, _tz_ignored):
     # Store/compare in UTC to match how runs.datetime is saved in the DB
     return ts.isoformat(sep=' ', timespec='seconds')
 
-
-def load_paths():
-    """
-    Tries utils.load_last_used_paths(); falls back to config values.
-    Must return (stryd_path, garmin_file)
-    """
-    try:
-        from path_memory import load_last_used_paths
-        sp, gf, _ = load_last_used_paths()
-        if sp and gf:
-            return sp, gf
-    except Exception:
-        pass
 
 def main():
     # # choose tz once; use same for all comparisons
@@ -81,7 +68,7 @@ def main():
     for p in unparsed:
         result = interactive_run_insert(str(p), garmin_file, conn, timezone_str=timezone_str)  # 3 args
 
-        if result is True:
+        if result:
             parsed_count += 1
         elif result is False:
             skipped_count += 1

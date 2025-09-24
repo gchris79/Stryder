@@ -1,11 +1,16 @@
 from datetime import timedelta, datetime, time
 from zoneinfo import ZoneInfo
 import pandas as pd
-
+from date_utilities import as_local_date, to_utc, dt_to_string, input_date
+from metrics import align_df_to_metric_keys
 from queries import view_menu
-from utils import get_default_timezone, prompt_menu, MenuItem, fmt_sec_to_hms, input_positive_number, \
-    string_to_datetime, as_date
+from runtime_context import get_tzinfo, get_tz_str
+from utils import prompt_menu, MenuItem, fmt_sec_to_hms, input_positive_number, \
+    get_valid_input, fmt_str_decimals
 from visualizations import display_menu
+
+SINGLE_RUN_SAMPLE_KEYS = {"power_sec", "ground", "lss", "cadence", "vo"}
+SINGLE_RUN_DISTANCE_MAP = {"stryd_distance": "distance"}
 
 
 def weekly_report(
@@ -58,7 +63,8 @@ def weekly_report(
     )
 
     if df.empty:
-        return label, pd.DataFrame(columns=["week_start","week_end","Runs","Distance (km)","Duration","Avg Power", "Avg HR"])
+        cols = ["week_start", "week_end", "runs", "distance_km", "duration_sec", "avg_power", "avg_hr"]
+        return label, pd.DataFrame(columns=cols)
 
     # guard to avoid duplicates
     if "run_id" in df.columns:
@@ -89,17 +95,23 @@ def weekly_report(
                   HR=("avg_hr","mean"))
              .reset_index())
 
-    agg["week_start"] = agg["week_idx"].map(lambda i: start_local + timedelta(days=7*int(i)))
-    agg["week_end"]   = agg["week_start"] + timedelta(days=7)
+    agg["week_start"] = agg["week_idx"].map(lambda i: start_local + timedelta(days=7 * int(i)))
+    agg["week_end"] = agg["week_start"] + timedelta(days=7)
 
-    agg["Distance (km)"] = agg["km"].round(2)
-    agg["Duration"] = agg["sec"].apply(fmt_sec_to_hms)
+    # RAW canonical names
+    weekly_raw = (
+        agg.rename(columns={
+            "Runs": "runs",
+            "km": "distance_m",
+            "sec": "duration_sec",
+            "pow": "avg_power",
+            "HR": "avg_hr",
+        })
+        .sort_values("week_start")
+        [["week_start", "week_end", "runs", "distance_m", "duration_sec", "avg_power", "avg_hr"]]
+    )
 
-    agg["Avg Power"] = agg["pow"]
-    agg["Avg HR"] = agg["HR"]
-
-    weekly = agg.sort_values("week_start")[["week_start","week_end","Runs","Distance (km)","Duration","Avg Power", "Avg HR"]]
-    return label, weekly    # week_start and week_end are daytime objects
+    return label, weekly_raw
 
 
 def get_report_bounds(
@@ -107,8 +119,8 @@ def get_report_bounds(
         tz_name:str,
         *,
         weeks:int,
-        end_date: datetime,
-        start_date: datetime,
+        end_date: datetime | None,
+        start_date: datetime | None,
 ):
     """
     Return (start_local, end_local) for the last fully completed week OR last 7 days:
@@ -119,9 +131,9 @@ def get_report_bounds(
 
     # Normalize inputs to date
     if start_date is not None:
-        start_date = as_date(start_date)
+        start_date = as_local_date(start_date, tz)
     if end_date is not None:
-        end_date = as_date(end_date)
+        end_date = as_local_date(end_date, tz)
 
     # --- Custom absolute range (start + end) ---
     if start_date is not None and end_date is not None:
@@ -175,12 +187,12 @@ def get_report_bounds(
     return start_utc, end_utc, label
 
 
-def get_single_run_query(conn, run_id):
+def get_single_run_query(conn, run_id: int, metrics: dict):
     query = """
         SELECT
             m.id,
             m.run_id,
-            m.datetime AS dt,
+            m.datetime          AS dt,
             m.power,
             m.stryd_distance,
             m.ground_time,
@@ -192,46 +204,66 @@ def get_single_run_query(conn, run_id):
         WHERE m.run_id = ? 
         ORDER BY m.datetime ASC
     """
-    df = pd.read_sql(query, conn, params=(run_id,), parse_dates=["dt"])
+    df_raw = pd.read_sql(query, conn, params=(run_id,), parse_dates=["dt"])
 
     # Ensure that dt is datetime object and not string
-    df["dt"] = pd.to_datetime(df["dt"], errors="coerce")
+    df_raw["dt"] = pd.to_datetime(df_raw["dt"], errors="coerce")
 
     # Ensure that columns are numeric
     for c in ["power", "stryd_distance", "ground_time", "stiffness", "cadence", "vertical_oscillation"]:
-        df[c] = pd.to_numeric(df[c], errors="coerce")
+        df_raw[c] = pd.to_numeric(df_raw[c], errors="coerce")
+
+    # Rename the SQL column names to metrics canonical keys
+    df = align_df_to_metric_keys(df_raw, metrics, keys=SINGLE_RUN_SAMPLE_KEYS)
+
+    if "stryd_distance" in df.columns and "distance" in metrics:
+        df = df.rename(columns={"stryd_distance": "distance_m"})
+
+    if "elapsed_sec" not in df.columns:
+        df["elapsed_sec"] = (df["dt"] - df["dt"].iloc[0]).dt.total_seconds()
+    if "distance_m" in df.columns and "distance_km" not in df.columns:
+        df["distance_km"] = df["distance_m"] / 1000.0
+
+    if "run_id" not in df.columns:
+        df["run_id"] = int(run_id)
 
     return df
 
 
-def render_single_run_report(df: pd.DataFrame) -> pd.DataFrame:
+def first_col(df: pd.DataFrame, *candidates: str, default=None):
+    for c in candidates:
+        if c in df.columns:
+            return df[c]
+    if default is not None:
+        return default
+    raise KeyError(f"None of {candidates} found in DF columns: {list(df.columns)}")
 
-    run_id = int(df["run_id"].iloc[0])
 
+def render_single_run_report(df:pd.DataFrame) -> pd.DataFrame:
+    run_id = int(first_col(df, "run_id", "id").iloc[0])
     # Calculate duration from datetime
-    duration_sec = (df["dt"].max() - df["dt"].min()).total_seconds()
-
+    duration_sec = int((df["dt"].max() - df["dt"].min()).total_seconds())
     # Calculate total distance and format in km
-    distance_km = (df["stryd_distance"].max() or 0) / 1000.0
+    distance_m = float(first_col(df, "distance_m", "stryd_distance", default=0).max() or 0.0)
 
     # Building the report df
-    report = pd.DataFrame([{
+    row = {
         "Run ID": run_id,
         "Duration": fmt_sec_to_hms(duration_sec),
-        "Distance (km)" : round(distance_km, 2),
-        "Avg Power" : round(df["power"].mean(),1),
-        "Avg Ground Time" : round(df["ground_time"].mean(),1),
-        "Avg LSS" : round(df["stiffness"].mean(), 1),
-        "Avg Cadence" : round(df["cadence"].mean(), 1),
-        "Avg Vertical Osc." : round(df["vertical_oscillation"].mean(), 2),
+        "Distance (km)": round(distance_m / 1000.0, 2),
+        "Avg Power": round(first_col(df, "power_sec", "power").mean(), 1),
+        "Avg Ground Time": round(first_col(df, "ground").mean(), 1),
+        "Avg LSS": round(first_col(df, "lss", "stiffness").mean(), 1),
+        "Avg Cadence": round(first_col(df, "cadence").mean(), 1),
+        "Avg Vertical Osc.": round(first_col(df, "vo", "vertical_oscillation").mean(), 2),
+    }
+    return pd.DataFrame([row])
 
-    }])
-    return report
 
+def reports_menu(conn, metrics):
 
-def reports_menu(conn):
-
-    tz = get_default_timezone()
+    tz = get_tz_str()
+    tzinfo = get_tzinfo()
 
     items1 = [
         MenuItem("1", "Last N weeks"),
@@ -255,8 +287,8 @@ def reports_menu(conn):
             if choice2 in ["1", "2"]:
                 weeks = input_positive_number("How many weeks? ")
                 mode = "rolling" if choice2 == "1" else "calendar"
-                label, weekly = weekly_report(conn, tz, mode=mode, weeks=weeks)
-                display_menu(label, weekly, df_type)
+                label, weekly_raw = weekly_report(conn, tz, mode=mode, weeks=weeks)
+                display_menu(label, weekly_raw, df_type, metrics)
 
             elif choice1 == "b":
                 return
@@ -269,10 +301,10 @@ def reports_menu(conn):
             if choice2 in ["1", "2"]:
                 weeks = input_positive_number("How many weeks? ")
                 end_date = input("Give the end date of the report (YYYY-MM-DD): ")
-                end_dt = string_to_datetime(end_date)
+                end_dt = to_utc(end_date, in_tz=tzinfo)
                 mode = "rolling" if choice2 == "1" else "calendar"
-                label, weekly = weekly_report(conn, tz, mode=mode, weeks=weeks, end_date=end_dt)
-                display_menu(label, weekly, df_type)
+                label, weekly_raw = weekly_report(conn, tz, mode=mode, weeks=weeks, end_date=end_dt)
+                display_menu(label, weekly_raw, df_type, metrics)
 
             elif choice1 == "b":
                 return
@@ -281,38 +313,45 @@ def reports_menu(conn):
 
         # Custom date range
         elif choice1 == "3":
-            start_date = input("Give the start date of the report (YYYY-MM-DD): ")
-            str_dt = string_to_datetime(start_date)
-            end_date = input("Give the end date of the report (YYYY-MM-DD): ")
-            end_dt = string_to_datetime(end_date)
-            label, weekly = weekly_report(conn, tz, mode="rolling", start_date=str_dt, end_date=end_dt)
-            display_menu(label, weekly, df_type)
+            str_dt = input_date("Give the start date of the report (YYYY-MM-DD): ")
+            end_dt = input_date("Give the end date of the report (YYYY-MM-DD): ")
+            label, weekly_raw = weekly_report(conn, tz, mode="rolling", start_date=str_dt, end_date=end_dt)
+            display_menu(label, weekly_raw, df_type, metrics)
 
     elif choice1 == "4":
         # Single run report
         df_type = "single"
-        df_view = view_menu(conn, "for_report")
-        run_id = int(input("Please enter Run ID for the run you are interested in: "))
-        if (df_view["Run ID"].eq(run_id)).any():    # check if run_id is in dataframe
-            row = df_view.loc[df_view["Run ID"] == run_id].squeeze()    # squeeze row for printing
-            datetime_col = [c for c in df_view.columns if c.startswith("DateTime")][0]      # find datetime column
-            tz = datetime_col.split("(", 1)[1][:-1]         # get timezone string from splitting
-            cool_string = (
-                f"\nRun {row['Run ID']} | {row[datetime_col]} ({tz}) | "
-                f"{row['Workout Name']} | {row['Distance (km)']} km | {row['Duration']}"
-            )
-            print(cool_string)      # print a cool string to show details about the picked run before the report
 
-            df = get_single_run_query(conn, run_id)
-            if df.empty:
-                print(f"Empty dataframe.")
-                return
-            display_menu("",df, df_type)
-        else:
-            print(f"\nCould not find this run.")
+        if (result := view_menu(conn, metrics,"for_report")) is None:      # Guard if user hits back without choosing run
+            return                                           # Return to previous menu safely
+        rows, columns = result              # Unpack safely
+
+        cool_string = None
+        if (run_id := get_valid_input("Please enter Run ID for the run you are interested in: ")) is None:
             return
+
+        for row in rows:                    # Check users choice to match the run in table
+            if int(row["run_id"]) == int(run_id):
+                raw_ts = row["datetime"]                   # take the datetime of the run...
+                dt_local = dt_to_string(to_utc(raw_ts, in_tz=tzinfo), "ymd_hms", tz=tzinfo)      # ...and localize it for display in cool string
+                cool_string = (
+                    f'\nRun {row["run_id"]} | {dt_local} | '
+                    f'{row["wt_name"]} | {fmt_str_decimals(row["distance_m"]/1000)} km | {fmt_sec_to_hms(row["duration"])}'
+                )
+                print(cool_string)      # print a cool string to show details about the picked run before the report
+
+                df_raw = get_single_run_query(conn, run_id, metrics)
+                if df_raw.empty:
+                    print(f"Empty dataframe.")
+                    return
+                display_menu("",df_raw, df_type, metrics)
+                break
+        if cool_string is None:
+            print(f"\nRun with Run ID {run_id} does not exist in you database.\n")
 
     elif choice1 == "b":
         return
+        #menu_guard(None)
+
     elif choice1 == "q":
         exit(0)

@@ -1,16 +1,14 @@
 from dataclasses import dataclass
-from datetime import datetime, date
 from typing import Callable, Iterable, Optional
-
 import numpy as np
 import pandas as pd
 import logging
-from zoneinfo import ZoneInfo
 from pathlib import Path
-import tzlocal
 from tabulate import tabulate
-from path_memory import load_last_used_paths, save_last_used_paths
+from date_utilities import prompt_for_timezone
+from path_memory import save_paths
 from db_schema import run_exists
+from runtime_context import get_stryd_path, get_garmin_file
 
 
 @dataclass
@@ -18,6 +16,11 @@ class MenuItem:
     key: str                 # what the user types: "1", "a", "v", etc.
     label: str               # text shown to the user
     action: Optional[Callable[[], None]] = None  # optional callback
+
+
+def menu_guard(param_a, *args):
+    """ Guard for menus that return None to avoid traceback """
+    return (param_a, *args) if param_a else None
 
 
 def fmt_sec_to_hms(total_seconds: int) -> str:
@@ -28,21 +31,16 @@ def fmt_sec_to_hms(total_seconds: int) -> str:
     return f"{h:02}:{m:02}:{s:02}"
 
 
-def fmt_pd_sec_to_hms(sec,pos) -> str:
-    sec = int(sec)
-    h, m = divmod(sec // 60, 60)
-    return f"{h:02}:{m:02}"
+
+def fmt_str_decimals(fl_num) -> str:
+    fmt_num = "{:.2f}".format(fl_num)
+    return fmt_num
 
 
-def fmt_hms_to_sec(s: str) -> int:
-    parts = s.split(":")
-    if len(parts) == 3:
-        h, m, sec = map(int, parts)
-    elif len(parts) == 2:  # allow MM:SS
-        h, m, sec = 0, *map(int, parts)
-    else:
-        raise ValueError(f"Bad time format: {s!r}")
-    return h * 3600 + m * 60 + sec
+def fmt_distance(meters) -> float:
+    km = float(meters / 1000)
+    return km
+
 
 def fmt_2dp(kN_per_m: float | None) -> str:
     if kN_per_m is None or pd.isna(kN_per_m):
@@ -79,7 +77,6 @@ def input_positive_number(prompt: str = "Enter a positive number: ") -> int:
             print("Invalid input. Please enter a whole number (e.g., 4).")
 
 
-
 def render_menu(title: str, items: Iterable[MenuItem], footer: str | None = None) -> None:
     """ Menu Display """
 
@@ -113,33 +110,6 @@ def prompt_menu(title: str, items: list[MenuItem], allow_back: bool = True, allo
         print("⚠️ Invalid choice. Try again.")
 
 
-def as_date(d: datetime | date) -> date:
-    return d.date() if isinstance(d, datetime) else d
-
-
-def string_to_datetime(date_str:str) -> datetime:
-
-    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
-        try:
-            return datetime.strptime(date_str, fmt)
-        except ValueError:
-            continue
-    raise ValueError (f"❌ Invalid date format: {date_str}")
-
-
-def weekly_table_fmt(weekly:pd.DataFrame) -> pd.DataFrame:
-    """Format weekly report table datetime fields to strings"""
-    out = weekly.copy()
-    # Loop to ensure that pandas will not traceback when given 1 week for input
-    for col in ("week_start", "week_end"):
-        if col in out.columns:
-            out[col] = pd.to_datetime(out[col], errors="coerce")
-
-    out["Week Start"] = out["week_start"].dt.strftime("%Y-%m-%d")
-    out["Week End"] = out["week_end"].dt.strftime("%Y-%m-%d")
-    return out[["Week Start", "Week End","Runs","Distance (km)","Duration","Avg Power", "Avg HR"]]
-
-
 def print_table(df, tablefmt=None, floatfmt=".2f",
                 numalign="decimal", showindex=False,
                 headers="keys", colalign=None):
@@ -167,8 +137,17 @@ def print_table(df, tablefmt=None, floatfmt=".2f",
         ))
 
 
-def resolve_tz(timezone_str: str | None) -> ZoneInfo:
-    return ZoneInfo(timezone_str) if timezone_str else ZoneInfo(tzlocal.get_localzone_name())
+def get_keys(keys):
+    """ Return a list of headers """
+    from metrics import METRICS_SPEC
+    return [METRICS_SPEC[k]["label"] for k in keys]
+
+
+def print_list_table(rows, headers):
+    if not rows:
+        print("⚠️ No results found.")
+        return
+    print(tabulate(rows, headers=headers, tablefmt="psql", showindex=False, floatfmt=".2f", numalign="decimal"))
 
 
 def prompt_yes_no(prompt_msg, default=True):
@@ -185,50 +164,24 @@ def prompt_yes_no(prompt_msg, default=True):
         print("⚠️ Invalid input. Please enter Y or N.")
 
 
-def get_default_timezone() -> str | None:
-    """Read stored timezone (no prompts)."""
-    _, _, tz = load_last_used_paths()
-    return tz
-
-
-def ensure_default_timezone() -> str | None:
-    """Return stored tz if present; otherwise prompt once, validate, store, and return it."""
-    tz = get_default_timezone()
-    if tz:
-        return tz
-    while True:
-        entered = input("🌍 Default timezone (e.g., Europe/Athens): ").strip()
-        if not entered or entered.lower() == "exit":
-            return None
+def get_valid_input(prompt, cast_func=int, retries=3, bound_start=None, bound_end=None):
+    """ Ask the user for input. Returns the cast value if valid, or None if retries are exhausted. """
+    for attempt in range(1, retries + 1):
         try:
-            # validate
-            _ = ZoneInfo(entered)
-            save_last_used_paths(timezone=entered)
-            return entered
+            return cast_func(input(prompt))
         except Exception:
-            print("❌ Unknown timezone. Try again (e.g., Europe/Athens).")
-
-
-def prompt_for_timezone(file_name=None):
-    example = "e.g. Europe/Athens"
-    file_msg = f" for {file_name}" if file_name else ""
-    tz_str = input(f"🌍 Timezone ({example}){file_msg} (or 'exit' to quit): ").strip()
-
-    if tz_str.lower() in {"exit", "quit", "q"}:
-        return "EXIT"
-
-    try:
-        ZoneInfo(tz_str)
-        return tz_str
-    except Exception:
-        print("❌ Invalid timezone. Skipping.")
-        return None
+            if attempt < retries:
+                print("⚠️ Invalid input. Try again.")
+            else:
+                print("⚠️ Invalid input. Exiting to main menu...")
+                return None
 
 
 def get_paths_with_prompt():
-
     # Try to load last used paths
-    stryd_path, garmin_path, _ = load_last_used_paths()
+    stryd_path = get_stryd_path()
+    garmin_path = get_garmin_file()
+
     if stryd_path and garmin_path:
         print("\n🧠 Last used paths:")
         print(f"📁 STRYD folder:     {stryd_path}")
@@ -247,7 +200,7 @@ def get_paths_with_prompt():
     while True:
         garmin_file = Path(input("📄 Enter path to Garmin CSV file: ").strip())
         if garmin_file.exists():
-            save_last_used_paths(stryd_path, garmin_file)
+            save_paths({"STRYD_DIR":stryd_path , "GARMIN_CSV_FILE":garmin_file})
             return stryd_path, garmin_file
         if not prompt_yes_no("❌ Garmin file not found. Try again?"):
             logging.warning("Aborted: Garmin file not provided. Operation cancelled.")
@@ -335,13 +288,3 @@ def interactive_run_insert(stryd_file, garmin_file, conn, timezone_str=None) -> 
 
         else:
             print("❓ Invalid choice. Try again.")
-
-METRICS = {
-    "power" : {"key": "power_w", "label": "Power", "unit": "W/kg", "formatter": fmt_2dp},
-    "duration" : {"key": "duration",  "label": "Hours", "unit": "h:m", "formatter": fmt_sec_to_hms},
-    "pace" : {"key": "pace_s_per_km", "label": "Pace", "unit": "min/km", "formatter": fmt_pace},
-    "ground" : {"key": "ground_time_ms", "label": "Ground Time", "unit": "ms", "formatter": int},
-    "lss" : {"key": "lss", "label": "Leg Spring Stiff", "unit": "kN/m", "formatter": fmt_2dp},
-    "cadence": {"key": "cadence_spm", "label": "Cadence", "unit": "spm", "formatter": int},
-    "vo" : {"key": "vertical_osc_mm", "label": "Vertical Osc", "unit": "mm", "formatter": fmt_2dp},
-}

@@ -70,7 +70,6 @@ def process_csv_pipeline(stryd_csv_path, garmin_csv_path, timezone_str=None):
     avg_power = float(stryd_df["Power (w/kg)"].mean()) if "Power (w/kg)" in stryd_df.columns else 0.0
 
     # Generate AvgHR from Garmin
-    avg_hr = None
     avg_hr_candidates = ["Avg HR", "Average HR", "Average Heart Rate", "Avg. HR", "Avg HR (bpm)"]
     avg_hr_val = garmin_field(matched, avg_hr_candidates, coerce_numeric=True,
                               transform=lambda v: int(round(v)) if pd.notna(v) else None)

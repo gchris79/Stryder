@@ -3,19 +3,20 @@
 As a hobbyist runner getting into coding, I built this command-line tool to help organize and analyze my running data using CSV files from Stryd footpod. It stores the cleaned data in a local SQLite database for easy access and future analysis.
 
 ---
-
 ## 📽️ Demo
-### 1. Clean CLI Menu
+
+### 1. Weekly & Rolling Reports
+Generate weekly reports with distance, avg HR, power, and duration.
+
+<img src="assets/reports_demo.gif" width="700">
+
+---
+
+### 2. Clean CLI Menu
 Navigate easily through the launcher menu.
 
 <img src="assets/CLI_menu.gif" width="700">
 
----
-
-### 2. Weekly & Rolling Reports
-Generate 1-week, 4-week, or 12-week reports with distance, avg HR, power, and duration.
-
-<img src="assets/reports_demo.gif" width="700">
 
 ---
 
@@ -39,8 +40,9 @@ Inspect any run in detail with normalized workout names, timestamps, and metrics
 - **Interactive CLI menu** — easy navigation through all options  
 - **Import Stryd CSVs** and store them in a local SQLite database  
 - **View every run** with clean tabulated CLI tables  
-- **Custom weekly reports** with averages for distance, duration, power, and HR  
-- **Export visual charts** to track mileage, power, and heart rate trends 
+- **Custom weekly reports** with averages for distance, duration, power, and HR
+- **Single run reports** on metrics like power,pace,ground time, LSS, Cadence and Vertical Oscillation.
+- **Export visual charts** to track power, mileage, and LSS trends 
 
 ---
 
@@ -118,10 +120,9 @@ These are planned or possible features for future versions of Stryder:
 - [x] Add CLI commands for viewing runs and summaries
 - [x] Weekly/monthly mileage summaries
 - [x] Graphs: power, distance, duration and HR over time 
-- [ ] Support .fit/.tcx/.gpx file parsing
 - [ ] Optional GUI (e.g., Streamlit or PyQt)
 - [ ] Export to Excel or CSV with filters
-
+- [ ] Support .fit/.tcx/.gpx file parsing
 ## 👤 Author
 Giorgos Chrysopoulos
 

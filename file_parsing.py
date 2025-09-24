@@ -2,7 +2,7 @@ import logging
 import pandas as pd
 from datetime import timedelta
 from zoneinfo import ZoneInfo
-from utils import resolve_tz
+from date_utilities import resolve_tz
 
 
 class ZeroStrydDataError(Exception):
@@ -112,13 +112,13 @@ def garmin_field(row, candidates, transform=None, coerce_numeric=False):
         if c in row.index:
             val = row[c]
             if coerce_numeric:
-                import pandas as pd
                 val = pd.to_numeric([val], errors="coerce")[0]
             if transform:
                 try:
                     val = transform(val)
-                except Exception:
-                    pass
+                except ValueError:
+                    print(f"⚠️ Could not transform value {val!r}")
+                    return None
             return val
     return None
 

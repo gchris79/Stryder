@@ -1,139 +1,183 @@
-from typing import Literal
+import sqlite3
+from typing import Literal, Tuple, List
 import pandas as pd
-from utils import get_default_timezone, print_table, fmt_sec_to_hms, MenuItem, prompt_menu
-from zoneinfo import ZoneInfo
+from fontTools.misc.plistlib import end_date
+
+from date_utilities import input_date
+from formatting import format_view_columns
+from utils import MenuItem, prompt_menu, prompt_yes_no, print_list_table, menu_guard
 
 pd.set_option('display.max_rows', None)  # show all rows
 pd.set_option('display.max_columns', None) # show all columns
 pd.set_option('display.width', 150)
 
 
-def format_df_columns(df, mode):
-    """ Format the columns of the dataframe for display """
-
-    if df is None or getattr(df, "empty", True):
-        print("ℹ️ No results.")
-
-
-    # Format distance → km
-    if "distance_m" in df.columns:
-        df["Distance (km)"] = (df["distance_m"].fillna(0) / 1000).round(2)
-        df.drop(columns=["distance_m"], inplace=True)
-
-    # Format duration
-    if "duration_sec" in df.columns:
-        df["Duration"] = df["duration_sec"].fillna(0).astype(int).apply(fmt_sec_to_hms)
-        df.drop(columns=["duration_sec"], inplace=True)
-
-
-    # Check if there is a DateTime field → local (if present)
-    tz = get_default_timezone() or "Europe/Athens"
-    dt_col = next(
-        (c for c in df.columns if c.lower().replace(" ", "") in {"datetime", "date"}),
-        None,
-    )
-    if dt_col:
-        try:
-            df.sort_values(by=dt_col, inplace=True)
-        except Exception:
-            pass
-        dt = pd.to_datetime(df[dt_col], utc=True, errors="coerce")
-        df[dt_col] = dt.dt.tz_convert(ZoneInfo(tz)).dt.strftime("%Y-%m-%d %H:%M")
-        df.rename(columns={dt_col: f"DateTime ({tz})"}, inplace=True)
-
-    if mode == "for_views":
-        df["Avg Power (W/kg)"] = df["avg_power"]
-        df_view = df[[f"DateTime ({tz})", "Workout Name", "Distance (km)", "Duration", "Avg Power (W/kg)", "Avg HR", "Workout Type"]].copy()
-    elif mode == "for_report":
-        df_view = df[["Run ID" ,f"DateTime ({tz})","Workout Name", "Distance (km)", "Duration"]].copy()
-    else: print("⚠️ Not a valid dataframe!!!")
-
-    return df_view
-
-
-def render_workouts(df, mode):
-    """Format then print a workouts DataFrame."""
-
-    df_fmt = format_df_columns(df, mode)
-    if df_fmt is not None and not df_fmt.empty:
-        print_table(df_fmt)
-        return df_fmt
-    else:
-        return print("ℹ️ No results.")
-
-
-def get_views_query():
+def views_query() -> str:
     return """
         SELECT 
-            r.datetime AS "DateTime",
-            w.workout_name AS "Workout Name",
-            r.distance_m,
-            r.duration_sec,
-            r.avg_power,
-            r.avg_hr AS "Avg HR",
-            wt.name AS "Workout Type"
+            r.id            AS run_id,
+            r.datetime      AS datetime,
+            w.workout_name  AS wt_name,
+            r.distance_m    AS distance_m,
+            r.duration_sec  AS duration_sec,
+            r.avg_power     AS avg_power,
+            r.avg_hr        AS avg_hr,
+            wt.name         AS wt_type
         FROM runs r
         JOIN workouts w ON r.workout_id = w.id
         JOIN workout_types wt ON w.workout_type_id = wt.id
     """
 
-def get_runs_for_report_query():
+def for_report_query() -> str:
     return""" 
         SELECT
-            r.id AS "Run ID",
-            r.datetime AS "DateTime",
-            w.workout_name AS "Workout Name",
-            r.duration_sec,
-            r.distance_m
+            r.id            AS run_id,
+            r.datetime      AS datetime,
+            w.workout_name  AS wt_name,
+            r.duration_sec  AS duration,
+            r.distance_m    AS distance_m
         FROM runs r
         JOIN workouts w ON r.workout_id = w.id
     """
 
 
-# Return all workouts
-def get_all_workouts(conn, mode):
-    func_mode = get_views_query() if mode == "for_views" else get_runs_for_report_query()
-    query = func_mode + " ORDER BY r.datetime DESC"
-    return pd.read_sql(query, conn)
+def _fetch(conn: sqlite3.Connection, sql: str, params: tuple = ()
+           ) -> Tuple[List[sqlite3.Row], List[str]]:
+    cur = conn.cursor()
+    cur.execute(sql, params)
+    rows = cur.fetchall()
+    columns = [d[0] for d in cur.description]  # SELECT order
+    return rows, columns
 
 
-# Return workouts filtered by date
-def get_workouts_by_date(date1, date2, conn, mode):
-    func_mode = get_views_query() if mode == "for_views" else get_runs_for_report_query()
-    query = func_mode + "WHERE r.datetime BETWEEN ? AND ? ORDER BY r.datetime DESC"
-    return pd.read_sql(query, conn, params=(date1, date2))
+def fetch_page(
+    conn,
+    base,
+    base_params: tuple = (),
+    last_cursor: tuple | None = None,    # cursor: (last_datetime_iso, last_id)
+    page_size: int | None = 20,
+):
+
+    # No pagination: return the full table, ignore cursor/lookahead
+    if not page_size:  # 0 or None
+        sql = f"{base} ORDER BY r.datetime, r.id"
+        rows, columns = _fetch(conn, sql, base_params)
+        return rows, columns, None
+
+    limit = page_size + 1       # lookahead
+
+    # If base_query has WHERE -> append AND; otherwise start WHERE
+    has_where = " WHERE " in base.upper()
+    joiner = " AND " if has_where else " WHERE "
+
+    if last_cursor is None:
+        sql = f"{base} ORDER BY r.datetime, r.id LIMIT ?"
+        params = (*base_params, limit)
+    else:
+        last_dt, last_id = last_cursor
+        sql = (
+            f"{base}{joiner}"
+            "((r.datetime > ?) OR (r.datetime = ? AND r.id > ?))"
+            "ORDER BY r.datetime, r.id LIMIT ?"
+        )
+        params = (*base_params, last_dt, last_dt, last_id, limit)
+
+    # params order: where params + cursor params + limit
+    rows, columns = _fetch(conn, sql, params)
+
+    # Lookahead handling
+    if len(rows) == limit:
+        last = rows[-1]
+        cursor_next = (last["datetime"], last["run_id"])
+        rows = rows[:-1]  # trim the lookahead row from current page
+    else:
+        cursor_next = None
+
+    return rows, columns, cursor_next
 
 
-# Return workouts filtered by keyword
-def get_workouts_by_keyword(keyword, conn, mode):
+def paginate_runs(conn, base_query, mode, metrics, base_params=(), page_size: int = 20):
+    stack = []             # cursors for going back
+    cursor = None          # current cursor (None means first page)
+    while True:
+        rows, columns, cursor_next = fetch_page(
+            conn, base_query, base_params=base_params,
+            last_cursor=cursor, page_size=page_size)
+
+        if not rows and not stack and cursor is None:
+            print(" ⚠️ No results."); return "no_results"
+
+        headers, formatted_rows = format_view_columns(rows,mode,columns, metrics)
+        print_list_table(formatted_rows, headers)
+
+        # Determine navigation availability
+        at_start = (len(stack) == 0)
+        at_end = (cursor_next is None)
+
+        # Build dynamic prompt
+        options = []
+        if not at_end: options.append("[n]ext")
+        if not at_start: options.append("[p]rev")
+        options.append("[q]uit")
+        prompt = " ".join(options) + ": "
+
+        while True:
+            cmd = input(prompt).strip().lower()
+            if cmd == "q":
+                return "quit"
+            elif cmd in ("n", ""):
+                if at_end:
+                    if mode == "for_report":
+                        if prompt_yes_no("Do you want to exit and choose a run for report?"):
+                            return "choose_run"
+                        else: continue
+                    else:
+                        print("Already at the last page."); continue
+                stack.append(cursor)
+                cursor = cursor_next; break
+            elif cmd == "p":
+                if at_start:
+                    print("Already at first page"); continue
+                cursor = stack.pop(); break
+            else:
+                print(" ⚠️ Not a valid input."); continue
+
+
+def get_all_workouts(conn, metrics, mode):
+    """ Get all runs from the database """
+    base_query = views_query() if mode == "for_views" else for_report_query()
+    paginate_runs(conn, base_query, mode, metrics)
+    return fetch_page(conn, base_query, page_size=0)        # Return the full table for report
+
+
+def get_workouts_by_date(date1, date2, conn, metrics, mode):
+    """ Return workouts filtered by date """
+    base_query = views_query() if mode == "for_views" else for_report_query()
+    base_query += " WHERE r.datetime BETWEEN ? AND ?"
+    base_params = (date1, date2)
+    paginate_runs(conn, base_query, mode, metrics, base_params=base_params)
+    return fetch_page(conn,base_query,base_params,page_size=0)      # Return the full table for report
+
+
+def get_workouts_by_keyword(keyword, conn, metrics, mode):
+    """ Return workouts filtered by keyword """
     like_term = f"%{keyword}%"
     if mode == "for_views":
-        query = get_views_query() + """
-            WHERE w.workout_name LIKE ? 
-                OR wt.name LIKE ?
-            ORDER BY r.datetime DESC
-        """
-        return pd.read_sql(query,conn, params=(like_term, like_term))
+        base_query = views_query() + " WHERE (w.workout_name LIKE ? OR wt.name LIKE ?)"
+        base_params = (like_term, like_term)
+        paginate_runs(conn, base_query, mode, metrics, base_params=base_params)
+        return fetch_page(conn, base_query, base_params, page_size=0)
 
     elif mode == "for_report":
-        query = get_runs_for_report_query() + """
-            WHERE w.workout_name LIKE ? 
-            ORDER BY r.datetime DESC
-        """
-        return pd.read_sql(query,conn, params=(like_term,))
+        base_query = for_report_query() + " WHERE w.workout_name LIKE ?"
+        base_params = (like_term,)
+        paginate_runs(conn, base_query, mode, metrics, base_params=base_params)
+        return fetch_page(conn, base_query, base_params, page_size=0)
 
     else: return print(f"⚠️ Not a valid view mode (must be 'for_report' or 'for_views')")
 
 
-def check_invalid_run_id(mode, df, run_id):
-    if mode == "for_report":
-        if run_id not in df["id"]:
-            exit(0)
-
-
-
-# View (command) menu
-def view_menu(conn, mode : Literal["for_views", "for_report"]):
+def view_menu(conn, metrics, mode : Literal["for_views", "for_report"]):
 
     items1 = [
         MenuItem("1", "All runs"),
@@ -144,27 +188,25 @@ def view_menu(conn, mode : Literal["for_views", "for_report"]):
     choice1 = prompt_menu("View Runs", items1)
 
     if choice1 == "1":
-        df = get_all_workouts(conn,mode)
-        return render_workouts(df, mode)
-
-
+        rows, columns, _ = get_all_workouts(conn, metrics, mode)
+        return menu_guard(rows, columns)
 
     elif choice1 == "2":
-        start_date = input("Start date (YYYY-MM-DD): ")
-        end_date = input("End date (YYYY-MM-DD): ")
-        start_full = f"{start_date} 00:00:00"
-        end_full = f"{end_date} 23:59:59"
-        df = get_workouts_by_date(start_full, end_full, conn, mode)
-        return render_workouts(df, mode)
+        start_dt = input_date("Start date (YYYY-MM-DD): ")
+        end_dt = input_date("End date (YYYY-MM-DD): ")
+        start_full = start_dt.strftime("%Y-%m-%d 00:00:00")
+        end_full = end_dt.strftime("%Y-%m-%d 23:59:59")
+        rows, columns, _ = get_workouts_by_date(start_full, end_full, conn, metrics, mode)
+        return menu_guard(rows, columns)
 
     elif choice1 == "3":
         keyword = input("Search workouts by keyword: ")
-        df = get_workouts_by_keyword(keyword, conn, mode)
-        return render_workouts(df, mode)
+        rows, columns, _ = get_workouts_by_keyword(keyword, conn, metrics, mode)
+        return menu_guard(rows, columns)
 
 
     elif choice1 == "b":
-        return
+        return None
 
     elif choice1 == "q":
         exit(0)

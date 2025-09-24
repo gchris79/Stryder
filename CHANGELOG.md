@@ -5,9 +5,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+## [1.4.5] - 2025-09-24
+### 🎯 New: Pagination
+- Pagination in views and single-run reports.
+- Improved: Centralized metrics dictionary (no hardcoded labels/units).
+- Improved: More robust date input handling (no crashes on bad input).
+- Improved: Path saving & timezone bootstrapping (Windows/Linux).
+- Fixed: “Back” navigation behavior across menus.
+- Fixed: Keyword/date filtered pagination pipeline alignment.
+
+---
+
+## [1.4.0] - 2025-08-21
+### 🎯 New: Single Run Reports
+- Single run reports and graph visualizations on power,pace,ground time, LSS, Cadence and Vertical Oscillation.
+- Improved: Weekly mileage visualization (weekly rolling plot).
+- Improved: CLI menu orchestration for reports and views.
+- Fixed: Batch vs. find-unparsed logic (skips invalid Stryd CSVs).
+- Fixed: Guard against empty/zero Stryd data on import.
+
+---
 ## [1.3.0] - 2025-08-14
 ### 🎯 New: Summaries
-- Weekly and Rolling 4-week summaries from your SQLite data.
+- Weekly and Rolling weekly summaries from your SQLite data.
 - Shows total distance & time, average pace, average power, and average HR.
 - Clean formatting, sensible defaults, and timezone-aware date windows.
 

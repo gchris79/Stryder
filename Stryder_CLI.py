@@ -1,21 +1,79 @@
+import sqlite3
+from pathlib import Path
 import logging
 import sys
-from file_parsing import ZeroStrydDataError
-from reports import reports_menu
 from version import get_git_version
-from pathlib import Path
-from path_memory import load_last_used_paths, save_last_used_paths
-from db_schema import connect_db, init_db
-from batch_import import batch_process_stryd_folder
-from find_unparsed_runs import main as find_unparsed_main
-from reset_db import reset_db
 from config import DB_PATH
-from utils import prompt_for_timezone, get_paths_with_prompt, ensure_default_timezone
-from pipeline import process_csv_pipeline, insert_full_run
-from queries import view_menu
+from db_schema import connect_db, init_db
+from reset_db import reset_db
+from file_parsing import ZeroStrydDataError
+from path_memory import REQUIRED_PATHS, CONFIG_PATH, prompt_valid_path, \
+    save_json, load_json
+import runtime_context
+
 
 
 VERSION = get_git_version()
+
+
+def _configure_matplotlib_backend():
+    import os, sys, matplotlib
+    if os.environ.get("MPLBACKEND"):
+        return  # respect user override
+    try:
+        if sys.platform.startswith("linux") and os.environ.get("DISPLAY"):
+            matplotlib.use("TkAgg")  # GUI
+        else:
+            matplotlib.use("Agg")    # headless fallback (saves files)
+    except Exception as e:
+        print("[plot] Backend selection error:", e)
+
+_configure_matplotlib_backend()
+
+def bootstrap_defaults_interactive() -> dict[str, Path]:
+    """
+    - Loads last used paths from ~/.stryder/last_used_paths.json
+    - Validates them; if missing/invalid, prompts once and resaves
+    - Resolves timezone via your helper (no tz stored here)
+    - Sets runtime_context with tz + paths
+    - Returns a dict of usable Path objects
+    """
+    from date_utilities import resolve_tz, ensure_default_timezone
+
+    data = load_json(CONFIG_PATH)
+    resolved: dict[str, Path] = {}
+
+    # 1) Resolve/validate required paths
+    for key, expect in REQUIRED_PATHS.items():
+        raw = data.get(key)
+        p = Path(raw).expanduser() if raw else None
+
+        if not p or not p.exists() or (expect == "file" and not p.is_file()) or (expect == "dir" and not p.is_dir()):
+            # Missing or invalid → prompt
+            icon = "📄" if expect == "file" else "📁"
+            p = prompt_valid_path(f"{icon} Path for {key} ({expect}): ", expect)
+            # Store as POSIX for cross-OS friendliness (Windows accepts forward slashes)
+            data[key] = p.as_posix()
+            save_json(CONFIG_PATH, data)
+
+        resolved[key] = p
+
+    # 2) Timezone via your existing helper (prompt once if needed)
+    tz_str = ensure_default_timezone()  # e.g., returns "Europe/Athens" or similar
+    tzinfo = resolve_tz(tz_str) if tz_str else None
+
+    # 3) Announce and set runtime context (so anything can read it later)
+    stryd = resolved["STRYD_DIR"]
+    garmin = resolved["GARMIN_CSV_FILE"]
+    print(f"🧠 Defaults ➜ 📁 {stryd} | 📄 {garmin} | 🌍 {tz_str}")
+    runtime_context.set_context(tz_str=tz_str, tzinfo=tzinfo, stryd_path=stryd, garmin_file=garmin)
+
+    return resolved
+
+
+def configure_connection(conn: sqlite3.Connection) -> None:
+    """Call this once after opening the DB so rows are dict-like."""
+    conn.row_factory = sqlite3.Row
 
 
 # Set logging level based on --debug
@@ -30,29 +88,12 @@ def configure_logging():
     )
 
 
-def _bootstrap_defaults_interactive():
-    """If any of STRYD path, Garmin file, or timezone is missing, ask once and store."""
-    stryd, garmin, tz = load_last_used_paths()
-
-    if stryd and garmin and tz:
-        # Optional: echo what we’ll use
-        print(f"🧠 Defaults ➜ 📁 {stryd} | 📄 {garmin} | 🌍 {tz}")
-        return
-
-    print("⚙️  First-time setup (store defaults):")
-    if not stryd:
-        stryd = Path(input("📁 STRYD folder path: ").strip())
-        stryd.mkdir(parents=True, exist_ok=True)
-    if not garmin:
-        garmin = Path(input("📄 Garmin CSV file path: ").strip())
-    if not tz:
-        tz = ensure_default_timezone()
-        if not tz:
-            print("⚠️ No timezone provided. You can set it later; using prompts may appear.")
-    save_last_used_paths(stryd_path=stryd, garmin_file=garmin, timezone=tz)
-
-
 def add_import_menu(conn, mode: str | None = None, single_filename: str | None = None) -> bool:
+    from date_utilities import prompt_for_timezone
+    from utils import get_paths_with_prompt
+    from batch_import import batch_process_stryd_folder
+    from pipeline import process_csv_pipeline, insert_full_run
+
     # 1) Timezone once
     tz = prompt_for_timezone()
     if not tz or tz == "EXIT":
@@ -76,7 +117,7 @@ def add_import_menu(conn, mode: str | None = None, single_filename: str | None =
         elif choice == "2":
             mode = "single"
         else:
-            print("❓ Invalid choice. Try again.")
+            print("❓ Invalid choice. Exiting to main menu...")
             return False
 
     if mode == "batch":
@@ -122,7 +163,11 @@ def add_import_menu(conn, mode: str | None = None, single_filename: str | None =
         return False
 
 
-def launcher_menu():
+def launcher_menu(conn, metrics):
+    from reports import reports_menu
+    from find_unparsed_runs import main as find_unparsed_main
+    from queries import view_menu
+
     while True:
         print("\n🏁 What would you like to do?")
         print("[1] Add run to DB (batch or single)")
@@ -133,31 +178,23 @@ def launcher_menu():
         print("[q] Quit")
         choice = input("> ").strip().lower()
 
-        # Options that no DB is needed
-        if choice in {"2", "q", "x"}:
-            if choice == "2":
-                find_unparsed_main()
+        if choice == "1":
+            add_import_menu(conn)
 
-            elif choice in {"q", "x"}:
-                break
+        if choice == "2":
+           find_unparsed_main()
 
-        # Options that need DB
-        elif choice in {"1", "3", "4", "5"}:
-            conn = connect_db(DB_PATH)
+        elif choice == "3":
+            view_menu(conn, metrics, "for_views")
 
-            if choice == "1":
-                add_import_menu(conn)
+        elif choice == "4":
+            reports_menu(conn, metrics)
 
-            elif choice == "3":
-                view_menu(conn, "for_views")
+        elif choice == "5":
+            reset_db(conn)
 
-            elif choice == "4":
-                reports_menu(conn)
-
-            elif choice == "5":
-                reset_db(conn)
-
-            conn.close()
+        elif choice in {"q", "x"}:
+            break
         else:
             print("❓ Not a choice. Try again.")
 
@@ -167,15 +204,24 @@ def main():
     configure_logging()
     print(f"\n🏃 Stryder CLI v{VERSION}")
     print("Your running data CLI\n")
-    conn = connect_db(DB_PATH)
+
+    paths = bootstrap_defaults_interactive()            # Get saved tz, paths, etc.
+
+    from metrics import build_metrics
+
+    garmin_file = paths["GARMIN_CSV_FILE"]
+    stryd_dir   = paths["STRYD_DIR"]
+    metrics = build_metrics("local")            # Build metrics dict
+
+    conn = connect_db(DB_PATH)                  # Open db + configure row access by name
+    configure_connection(conn)
+
     try:
         init_db(conn)
+        launcher_menu(conn, metrics)            # Pass the connection and METRICS along the menus
+
     finally:
-        conn.close()
-
-    _bootstrap_defaults_interactive()
-    launcher_menu()
-
+        conn.close()                            # Close the connection
 
 if __name__ == "__main__":
     main()
