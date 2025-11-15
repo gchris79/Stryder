@@ -31,7 +31,6 @@ def fmt_sec_to_hms(total_seconds: int) -> str:
     return f"{h:02}:{m:02}:{s:02}"
 
 
-
 def fmt_str_decimals(fl_num) -> str:
     fmt_num = "{:.2f}".format(fl_num)
     return fmt_num
@@ -54,6 +53,12 @@ def fmt_pace(min_per_km: float | None, pos) -> str:
     total_sec = int(round(min_per_km * 60))
     m, s = divmod(total_sec, 60)
     return f"{m}:{s:02d}/km"
+
+
+def loadcsv_2df(file):
+    """ Loads a csv and returns its dataframe """
+    file_df = pd.read_csv(file)
+    return file_df
 
 
 def calc_df_to_pace(df: pd.DataFrame, seconds_col : str, meters_col : str) -> pd.Series:
@@ -218,6 +223,10 @@ def interactive_run_insert(stryd_file, garmin_file, conn, timezone_str=None) -> 
     from pipeline import process_csv_pipeline, insert_full_run
     file_name = Path(stryd_file).name
 
+    # Transform Stryd and Garmin csv's to dataframes
+    stryd_raw_df = loadcsv_2df(stryd_file)
+    garmin_raw_df = loadcsv_2df(garmin_file)
+
     while True:
         if timezone_str is None:
             tz_input = prompt_for_timezone(stryd_file)
@@ -230,11 +239,10 @@ def interactive_run_insert(stryd_file, garmin_file, conn, timezone_str=None) -> 
             timezone_str = tz_input
 
         try:
-            stryd_df, _, avg_power, _, avg_hr, total_m = process_csv_pipeline(stryd_file, garmin_file, timezone_str)
-
+            stryd_df, _, avg_power, _, avg_hr, total_m = process_csv_pipeline(stryd_raw_df, garmin_raw_df, timezone_str, file_name)
 
             # ✅ Use LOCAL timestamp string to match DB, no UTC conversion here
-            start_time = stryd_df["Local Timestamp"].iloc[0]
+            start_time = stryd_df["ts_local"].iloc[0]
             start_time_str = start_time.isoformat(sep=' ', timespec='seconds')
 
             # Check the DB to avoid re-inserts
@@ -250,7 +258,7 @@ def interactive_run_insert(stryd_file, garmin_file, conn, timezone_str=None) -> 
             logging.error(f"❌ Failed to process {stryd_file}: {e}")
             return False
 
-        workout_name = stryd_df.get("Workout Name", pd.Series(["Unknown"])).iloc[0]
+        workout_name = stryd_df.get("wt_name", pd.Series(["Unknown"])).iloc[0]
 
         # Garmin matched
         if workout_name != "Unknown":

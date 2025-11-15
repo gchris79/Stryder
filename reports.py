@@ -10,7 +10,6 @@ from utils import prompt_menu, MenuItem, fmt_sec_to_hms, input_positive_number, 
 from visualizations import display_menu
 
 SINGLE_RUN_SAMPLE_KEYS = {"power_sec", "ground", "lss", "cadence", "vo"}
-SINGLE_RUN_DISTANCE_MAP = {"stryd_distance": "distance"}
 
 
 def weekly_report(
@@ -102,13 +101,13 @@ def weekly_report(
     weekly_raw = (
         agg.rename(columns={
             "Runs": "runs",
-            "km": "distance_m",
+            "km": "distance_km",
             "sec": "duration_sec",
             "pow": "avg_power",
             "HR": "avg_hr",
         })
         .sort_values("week_start")
-        [["week_start", "week_end", "runs", "distance_m", "duration_sec", "avg_power", "avg_hr"]]
+        [["week_start", "week_end", "runs", "distance_km", "duration_sec", "avg_power", "avg_hr"]]
     )
 
     return label, weekly_raw

@@ -1,6 +1,5 @@
 import math
 import pandas as pd
-from pyparsing import Literal
 from typing import Literal
 from date_utilities import dt_to_string
 from runtime_context import get_tzinfo
@@ -13,7 +12,6 @@ def fmt_hms_df(sec, pos=None, mode:Literal["hms","hm"] = "hm" ) -> str:
     h, rem = divmod(sec, 3600)
     m, s   = divmod(rem, 60)
     return f"{h:02}:{m:02}" if mode == "hm" else f"{h:02}:{m:02}:{s:02}"
-
 
 
 def fmt_pace_df(sec_per_km, pos=None) -> str:

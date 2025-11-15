@@ -12,7 +12,7 @@ class MetricInfo(TypedDict, total=False):
     unit: str
     formatter: str | Callable[[Any], Any]
 
-
+# This is the dictionary from which the metrics dict will be built, this is used after the db is created for reports, views etc. #
 METRICS_SPEC : dict[str ,MetricInfo] = {
     "id":        {"key": "run_id",              "label": "Run ID",                          "formatter": "id"},
     "wt_name":   {"key": "wt_name",             "label": "Workout Name",                    "formatter": "wt_name"},
@@ -25,9 +25,40 @@ METRICS_SPEC : dict[str ,MetricInfo] = {
     "ground":    {"key": "ground_time",         "label": "Ground Time",   "unit": "ms",     "formatter": "ground"},
     "lss":       {"key": "stiffness",           "label": "LSS",           "unit": "kN/m",   "formatter": "lss"},
     "cadence":   {"key": "cadence",             "label": "Cadence",       "unit": "spm",    "formatter": "cadence"},
-    "vo":        {"key": "vertical_oscillation","label": "V.Oscillation", "unit": "mm",     "formatter": "vo"},
+    "vo":        {"key": "vertical_oscillation","label": "V.Oscillation", "unit": "cm",     "formatter": "vo"},
     "distance":  {"key": "distance_m",          "label": "Distance",      "unit": "m",      "formatter": "distance"},
+    "distance_km":{"key": "distance_km",        "label": "Distance",      "unit": "km",      "formatter": "distance"},
     "HR":        {"key": "avg_hr",              "label": "Avg HR",        "unit": "bpm",    "formatter": "HR"}
+
+}
+
+# Canonical stream keys that will be used in file parsing #
+STRYD_PARSE_SPEC = {
+    "timestamp_s":        {"aliases": ["Timestamp"]},
+    "str_dist_m":         {"aliases": ["Stryd Distance (meters)"]},
+    "watch_dist_m":       {"aliases": ["Watch Distance (meters)"]},
+    "str_speed":          {"aliases": ["Stryd Speed (m/s)"]},
+    "watch_speed":        {"aliases": ["Watch Speed (m/s)"]},
+    "power_sec":          {"aliases": ["Power (w/kg)"]},
+    "form_power":         {"aliases": ["Form Power (w/kg)"]},
+    "air_power":          {"aliases": ["Air Power (w/kg)"]},
+    "ground":             {"aliases": ["Ground Time (ms)"]},
+    "cadence":            {"aliases": ["Cadence (spm)"]},
+    "vo":                 {"aliases": ["Vertical Oscillation (cm)"]},
+    "watch_elev":         {"aliases": ["Watch Elevation (m)"]},
+    "stryd_elev":         {"aliases": ["Stryd Elevation (m)"]},
+    "stiffness":          {"aliases": ["Stiffness"]},
+    "stiffness_kg":       {"aliases": ["Stiffness/kg"]},
+    "ts_local":           {"aliases": ["Local Timestamp"]},             # produced in edit_stryd_csv
+    "delta_s":            {"aliases": ["Time Delta"]},                  # produced in edit_stryd_csv
+    "dist_delta":         {"aliases": ["Distance Delta"]},              # produced in edit_stryd_csv
+    "wt_name":            {"aliases": ["Workout Name"]},                # produced later in pipeline
+}
+
+GARMIN_PARSE_SPEC = {
+    "date":               {"aliases": ["Date"]},
+    "wt_name":            {"aliases": ["Workout Name", "Title"]},
+    "avg_hr":             {"aliases": ["Avg HR", "Average HR", "Average Heart Rate", "Avg. HR", "Avg HR (bpm)"]},
 
 }
 
@@ -48,15 +79,38 @@ def build_metrics(dt_mode: Literal["local", "utc"] = "local"):
 def align_df_to_metric_keys(
     df: pd.DataFrame,
     metrics: dict,
-    keys: set[str] | None = None,   # ← align only these metrics if provided
+    keys: set[str] | None = None,
 ) -> pd.DataFrame:
-    rename_map = {}
+    """ Align DataFrame columns to canonical metric keys """
+
+    rename_map: dict[str, str] = {}
+    cols = set(df.columns)
+
     for k, spec in metrics.items():
         if keys is not None and k not in keys:
             continue
-        src = spec.get("key", k)
-        if src in df.columns and src != k:
-            rename_map[src] = k
+
+        # Skip if canonical already present
+        if k in cols:
+            continue
+
+        # Prefer aliases (typical for parsing Stryd CSVs)
+        if "aliases" in spec:
+            aliases = spec["aliases"]
+            if isinstance(aliases, str):
+                aliases = [aliases]
+            for alias in aliases:
+                if alias in cols:
+                    rename_map[alias] = k
+                    break
+        # Fallback to 'key' (typical for report/DB mappings)
+        elif "key" in spec:
+            src = spec["key"]
+            if src in cols and src != k:
+                rename_map[src] = k
+
+    if not rename_map:
+        return df
     return df.rename(columns=rename_map)
 
 

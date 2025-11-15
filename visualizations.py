@@ -49,11 +49,11 @@ def finish_plot(fig=None, title="plot"):
         return out
 
 
-def plot_distance_over_time(df: pd.DataFrame, *, y_col: str, label: str, ax=None) -> Axes:
+def plot_distance_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
     return plot_weekly_series(df, y_col=y_col, label=label)
 
 
-def plot_duration_over_time(df: pd.DataFrame, *, y_col: str, label: str, ax=None) -> Axes:
+def plot_duration_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
     fmt_hm = FuncFormatter(lambda y, pos: f"{int(y//3600):02}:{int((y%3600)//60):02}")
     loc_30min = MultipleLocator(1800)  # ticks every 30 minutes
     return plot_weekly_series(
@@ -61,11 +61,11 @@ def plot_duration_over_time(df: pd.DataFrame, *, y_col: str, label: str, ax=None
         y_formatter=fmt_hm, y_locator=loc_30min
     )
 
-def plot_power_over_time_batch(df: pd.DataFrame, *, y_col: str, label: str, ax=None) -> Axes:
+def plot_power_over_time_batch(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
     return plot_weekly_series(df, y_col=y_col, label=label)
 
 
-def plot_hr_over_time(df: pd.DataFrame, *, y_col: str, label: str, ax=None) -> Axes:
+def plot_hr_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
     return plot_weekly_series(df, y_col=y_col, label=label)
 
 
@@ -279,7 +279,6 @@ def plot_weekly_series(
     label: str,
     center: bool = True,
     width_days: int = 3,
-    tick_mode: Literal["exact","monday"] = "monday",
     date_fmt: str = "%b %d",
     rotation: int = 30,
     y_formatter: FuncFormatter | None = None,
@@ -297,12 +296,7 @@ def plot_weekly_series(
 
     ax.bar(x, y, width=width_days, align=("center" if center else "edge"))
 
-    if tick_mode == "exact":
-        ax.set_xticks(x)
-    elif tick_mode == "monday":
-        ax.xaxis.set_major_locator(mdates.WeekdayLocator(byweekday=mdates.MO))
-    else:
-        raise ValueError("tick_mode must be 'exact' or 'monday'")
+    ax.set_xticks(x)
 
     ax.xaxis.set_major_formatter(mdates.DateFormatter(date_fmt))
     ax.tick_params(axis="x", rotation=rotation)
@@ -313,8 +307,10 @@ def plot_weekly_series(
     if y_locator:
         ax.yaxis.set_major_locator(y_locator)
 
+
     ax.set_title(label)
     ax.set_ylabel(label)
+
     plt.tight_layout()
     return ax
 
@@ -383,7 +379,7 @@ def graph_menu_batch(metrics):
     choice1 = prompt_menu("Graphs", items1)
 
     if choice1 == "1":
-        return plot_distance_over_time, axis_label(metrics["distance"]), metrics["distance"]["key"]
+        return plot_distance_over_time, axis_label(metrics["distance_km"]), metrics["distance_km"]["key"]
 
     elif choice1 == "2":
         return plot_duration_over_time, axis_label(metrics["duration"]), metrics["duration"]["key"]

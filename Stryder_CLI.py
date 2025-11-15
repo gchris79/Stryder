@@ -4,9 +4,10 @@ import logging
 import sys
 from version import get_git_version
 from config import DB_PATH
-from db_schema import connect_db, init_db
+from db_schema import connect_db, init_db, run_exists
 from reset_db import reset_db
 from file_parsing import ZeroStrydDataError
+from utils import loadcsv_2df
 from path_memory import REQUIRED_PATHS, CONFIG_PATH, prompt_valid_path, \
     save_json, load_json
 import runtime_context
@@ -34,7 +35,7 @@ def bootstrap_defaults_interactive() -> dict[str, Path]:
     """
     - Loads last used paths from ~/.stryder/last_used_paths.json
     - Validates them; if missing/invalid, prompts once and resaves
-    - Resolves timezone via your helper (no tz stored here)
+    - Resolves timezone via helper (no tz stored here)
     - Sets runtime_context with tz + paths
     - Returns a dict of usable Path objects
     """
@@ -58,7 +59,7 @@ def bootstrap_defaults_interactive() -> dict[str, Path]:
 
         resolved[key] = p
 
-    # 2) Timezone via your existing helper (prompt once if needed)
+    # 2) Timezone via existing helper (prompt once if needed)
     tz_str = ensure_default_timezone()  # e.g., returns "Europe/Athens" or similar
     tzinfo = resolve_tz(tz_str) if tz_str else None
 
@@ -76,8 +77,9 @@ def configure_connection(conn: sqlite3.Connection) -> None:
     conn.row_factory = sqlite3.Row
 
 
-# Set logging level based on --debug
+
 def configure_logging():
+    """ Set logging level based on --debug """
     debug = ("--debug" in sys.argv) or ("-d" in sys.argv)
     if debug:
         print("🔧 Debug mode enabled")
@@ -120,8 +122,9 @@ def add_import_menu(conn, mode: str | None = None, single_filename: str | None =
             print("❓ Invalid choice. Exiting to main menu...")
             return False
 
+    # ---- BATCH MODE BELOW ----
     if mode == "batch":
-        # Your batch function only logs; don’t rely on local counters.
+        # Batch function only logs; don’t rely on local counters.
         batch_process_stryd_folder(stryd_path, garmin_file, conn, tz)
         print("\n📊 Batch complete. (See logs for totals)")
         return True
@@ -138,19 +141,31 @@ def add_import_menu(conn, mode: str | None = None, single_filename: str | None =
     if not stryd_file.exists():
         print(f"❌ File not found: {stryd_file}")
         return False
+    # Transform Stryd and Garmin csv's to dataframes
+    stryd_raw_df = loadcsv_2df(stryd_file)
+    garmin_raw_df = loadcsv_2df(garmin_file)
+
 
     try:
         stryd_df, duration_td, avg_power, duration_str, avg_hr, total_m = process_csv_pipeline(
-            str(stryd_file), garmin_file, tz
+            stryd_raw_df, garmin_raw_df, tz, stryd_file.name
         )
+
+        start_time_str = stryd_df['ts_local'].iloc[0].isoformat(sep=' ', timespec='seconds')
+        # Check if run already exists
+        if run_exists(conn, start_time_str):
+            logging.warning(f"⚠️  Run at {start_time_str} already exists. Skipping.")
+            print(f"⚠️ Run at {start_time_str} is already in the database. Not inserting again.")
+            return False
+
         # Derive workout name if present
         workout_name = (
-            stryd_df["Workout Name"].iloc[0]
-            if "Workout Name" in stryd_df.columns and len(stryd_df) > 0
+            stryd_df["wt_name"].iloc[0]
+            if "wt_name" in stryd_df.columns and len(stryd_df) > 0
             else "Unknown"
         )
         insert_full_run(stryd_df, workout_name, "", avg_power, avg_hr, total_m, conn)
-        print(f"✅ Inserted: {src_name} -Avg. Power: {avg_power} - Avg.HR: {avg_hr} - {total_m/1000:.2f} km")
+        print(f"✅ Inserted: {src_name} - Avg. Power: {avg_power} - Avg.HR: {avg_hr} - {total_m/1000:.2f} km")
         return True
 
     except ZeroStrydDataError as e:
@@ -181,7 +196,7 @@ def launcher_menu(conn, metrics):
         if choice == "1":
             add_import_menu(conn)
 
-        if choice == "2":
+        elif choice == "2":
            find_unparsed_main()
 
         elif choice == "3":
@@ -209,8 +224,6 @@ def main():
 
     from metrics import build_metrics
 
-    garmin_file = paths["GARMIN_CSV_FILE"]
-    stryd_dir   = paths["STRYD_DIR"]
     metrics = build_metrics("local")            # Build metrics dict
 
     conn = connect_db(DB_PATH)                  # Open db + configure row access by name

@@ -5,10 +5,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+## [1.5.0] – 2025-11-15
+### 🎯 Major Refactor: Canonical Metrics & Weekly Reports
+
+- Introduced canonical metric names across the entire parsing and reporting pipeline
+(consistent distance_km, unified labels/units, no more legacy aliases).
+- Refactored file parsing, pipeline, batch import, and find-unparsed to emit
+and consume canonical fields cleanly.
+- Updated weekly reports to correctly output distance_km (fixed old mislabeling of km as meters).
+- Unified weekly plot logic:
+- Removed tick_mode (now always uses week_start ticks).
+- Correctly aligned bars/ticks/grid for both calendar and rolling reports.
+- Refactored visualizations.py to rely solely on canonical names (consistent x/y axis labeling).
+- Improved internal date utilities, formatting, and utils for clearer timestamp handling.
+- Cleaned dead code, removed inconsistent distance_m/km fallbacks, and modernized several modules.
+
+🔧 Internal Quality Improvements
+
+- Deep cleanup across 12 project files, reducing ambiguity and technical debt.
+
+- Standardized data flow from CSV → parsing → DB → reports → plots.
+
+- Improved future maintainability and debugging clarity.
+---
 ## [1.4.5] - 2025-09-24
 ### 🎯 New: Pagination
 - Pagination in views and single-run reports.
-- Improved: Centralized metrics dictionary (no hardcoded labels/units).
+- Improved: Centralized metrics dictionary for reports (no hardcoded labels/units).
 - Improved: More robust date input handling (no crashes on bad input).
 - Improved: Path saving & timezone bootstrapping (Windows/Linux).
 - Fixed: “Back” navigation behavior across menus.

@@ -1,6 +1,8 @@
 import sqlite3
 import pandas as pd
 from pathlib import Path
+
+from metrics import align_df_to_metric_keys, STRYD_PARSE_SPEC
 from utils import interactive_run_insert, get_paths_with_prompt
 from date_utilities import resolve_tz
 from config import DB_PATH
@@ -13,12 +15,14 @@ def get_existing_datetimes(conn):
 
 
 def convert_first_timestamp_to_str(file_path, _tz_ignored):
+
     df = pd.read_csv(file_path)
-    if 'Timestamp' not in df.columns or df['Timestamp'].empty:
-        raise ValueError("Missing or empty 'Timestamp' column")
+    df = align_df_to_metric_keys(df, STRYD_PARSE_SPEC, keys={"timestamp_s"})
+    if 'timestamp_s' not in df.columns or df['timestamp_s'].empty:
+        raise ValueError("Missing or empty 'timestamp_s' column")
 
     # Parse as UTC (tz-aware) and pick the earliest sample
-    ts = pd.to_datetime(df['Timestamp'], unit='s', utc=True).min()
+    ts = pd.to_datetime(df['timestamp_s'], unit='s', utc=True).min()
 
     # Store/compare in UTC to match how runs.datetime is saved in the DB
     return ts.isoformat(sep=' ', timespec='seconds')

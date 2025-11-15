@@ -7,12 +7,14 @@ from runtime_context import get_tz_str, get_tzinfo
 
 
 def tzinfo_or_none() -> ZoneInfo | None:
+    """ Helper, returns tzinfo object from runtime_context or None """
     try:
         return get_tzinfo()
     except RuntimeError:
         return None
 
 def tz_str_or_none() -> str | None:
+    """ Helper, returns tzinfo string from runtime_context or None """
     try:
         return get_tz_str()
     except RuntimeError:
@@ -20,6 +22,7 @@ def tz_str_or_none() -> str | None:
 
 
 def prompt_for_timezone(file_name=None):
+    """ Prompt user for timezone """
     example = "e.g. Europe/Athens"
     file_msg = f" for {file_name}" if file_name else ""
     tz_str = input(f"🌍 Timezone ({example}){file_msg} (or 'exit' to quit): ").strip()
@@ -36,6 +39,7 @@ def prompt_for_timezone(file_name=None):
 
 
 def input_date(prompt: str) -> datetime:
+    """ Takes user input date, combines it with last saved input and convert it to UTC """
     tzinfo = tzinfo_or_none()       # fetch last saved timezone
     while True:
         raw = input(prompt).strip()
@@ -138,7 +142,7 @@ def as_aware(dt: datetime, tz=None) -> datetime:
         dt = to_utc(dt)
 
     if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:    # Naive datetime → ATTACH UTC (storage tz), then convert to target
-        dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=timezone.utc)
 
     return dt.astimezone(tz or timezone.utc)
 
