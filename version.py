@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_git_version(default="0.0.0"):
+    """ Gets git version and returns it to the caller """
     try:
         version = subprocess.check_output(
             ["git", "describe", "--tags", "--abbrev=0"],

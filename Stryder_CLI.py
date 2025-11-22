@@ -18,6 +18,7 @@ VERSION = get_git_version()
 
 
 def _configure_matplotlib_backend():
+    """ Auto-select a safe Matplotlib backend (GUI if available, else headless), unless user overrides. """
     import os, sys, matplotlib
     if os.environ.get("MPLBACKEND"):
         return  # respect user override

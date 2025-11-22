@@ -43,6 +43,7 @@ def for_report_query() -> str:
 
 def _fetch(conn: sqlite3.Connection, sql: str, params: tuple = ()
            ) -> Tuple[List[sqlite3.Row], List[str]]:
+    """ Execute a SQL SELECT query and return (rows, column_names) in the order returned by SQLite. """
     cur = conn.cursor()
     cur.execute(sql, params)
     rows = cur.fetchall()
@@ -57,6 +58,12 @@ def fetch_page(
     last_cursor: tuple | None = None,    # cursor: (last_datetime_iso, last_id)
     page_size: int | None = 20,
 ):
+    """ Takes a db connection a base query, base params, the last cursor and the page size
+     a) gives option to return full table if no page size provided
+     b) adds WHERE, AND if needed
+     c) ads ORDER afterwards
+     d) checks if its the end of the query or not
+     e) returns rows, columns and cursor_next for the page """
 
     # No pagination: return the full table, ignore cursor/lookahead
     if not page_size:  # 0 or None
@@ -97,6 +104,11 @@ def fetch_page(
 
 
 def paginate_runs(conn, base_query, mode, metrics, base_params=(), page_size: int = 20):
+    """ The main function for pagination
+    a) stores cursors for going back
+    b) take columns, rows and cursor sends them to be formatted
+    c) prints the table
+    d) adds the appropriate UI to navigate through the pages """
     stack = []             # cursors for going back
     cursor = None          # current cursor (None means first page)
     while True:
@@ -107,7 +119,7 @@ def paginate_runs(conn, base_query, mode, metrics, base_params=(), page_size: in
         if not rows and not stack and cursor is None:
             print(" ⚠️ No results."); return "no_results"
 
-        headers, formatted_rows = format_view_columns(rows,mode,columns, metrics)
+        headers, formatted_rows = format_view_columns(rows,mode, metrics)
         print_list_table(formatted_rows, headers)
 
         # Determine navigation availability
@@ -178,6 +190,7 @@ def get_workouts_by_keyword(keyword, conn, metrics, mode):
 
 
 def view_menu(conn, metrics, mode : Literal["for_views", "for_report"]):
+    """ The menu of views """
 
     items1 = [
         MenuItem("1", "All runs"),

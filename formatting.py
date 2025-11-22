@@ -28,11 +28,13 @@ def fmt_pace(seconds: float | int | None, with_unit: bool = False) -> str:
 
 
 def fmt_str_decimals(fl_num) -> str:
+    """ Format string decimal numbers, returns formatted string """
     fmt_num = "{:.2f}".format(fl_num)
     return fmt_num
 
 
 def fmt_distance(meters) -> float:
+    """ Calculates km from meters """
     km = float(meters / 1000)
     return km
 

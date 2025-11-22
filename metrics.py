@@ -68,6 +68,7 @@ def make_dt_value(mode="local"):
 
 
 def build_metrics(dt_mode: Literal["local", "utc"] = "local"):
+    """ Builds a dictionary based on the METRICS_SPEC registry """
     reg = {"id":str, "wt_name":str, "wt_type":str,
            "dt":make_dt_value(dt_mode),
            "power":float, "duration": fmt_hms, "pace":fmt_pace_km,

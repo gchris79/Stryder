@@ -15,8 +15,8 @@ from formatting import weekly_table_fmt, fmt_hm, fmt_pace_no_unit
 
 
 def finish_plot(fig=None, title="plot"):
-    """Show the figure if the backend is GUI; otherwise save to disk.
-       If showing fails for any reason, fall back to saving."""
+    """ Show the figure if the backend is GUI; otherwise save to disk.
+       If showing fails for any reason, fall back to saving. """
     if fig is None:
         fig = plt.gcf()
 
@@ -49,10 +49,12 @@ def finish_plot(fig=None, title="plot"):
 
 
 def plot_distance_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
+    """ Wrapper for plotting weekly distance over time """
     return plot_weekly_series(df, y_col=y_col, label=label)
 
 
 def plot_duration_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
+    """ Wrapper for plotting weekly duration over time """
     fmt_hour_min = FuncFormatter(lambda y, pos: fmt_hm(y))
     loc_30min = MultipleLocator(1800)  # ticks every 30 minutes
 
@@ -63,10 +65,12 @@ def plot_duration_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes
 
 
 def plot_power_over_time_batch(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
+    """ Wrapper for plotting weekly power over time """
     return plot_weekly_series(df, y_col=y_col, label=label)
 
 
 def plot_hr_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
+    """ Wrapper for plotting weekly HR over time """
     return plot_weekly_series(df, y_col=y_col, label=label)
 
 
@@ -81,7 +85,7 @@ def what_to_print(
     dpi: int = 300,
     metrics: dict = None
 ) -> Path | None:  # return saved path if you export, else None
-    """ The orchestrator that set what will be printed. """
+    """ The orchestrator that sets what will be printed. """
 
     from reports import render_single_run_report
 
@@ -181,7 +185,7 @@ def plot_single_series(
     y_locator: Locator | None = None,
     ax=None,
 ):
-    """ Graph plotter for the single report """
+    """ Graph plotter for the single run report """
     # ---- Backward-compatibility aliases ----
     x_alias = {"duration": "elapsed_sec", "distance": "distance_km", "distance_m": "distance_km"}
     x_col = x_alias.get(x_col, x_col)
@@ -287,7 +291,7 @@ def plot_weekly_series(
     y_locator: Locator | None = None,
     ax=None,
 ):
-    """ Graph plotter for the weekly report """
+    """ Graph plotter for the weekly run report """
     if y_col not in weekly.columns:
         raise ValueError(f"y_col '{y_col}' not in DataFrame columns: {list(weekly.columns)}")
 
@@ -371,7 +375,7 @@ def graph_menu_single(metrics: dict, df: pd.DataFrame):
 
 
 def graph_menu_batch(metrics):
-
+    """ The graph menu """
     items1 = [
         MenuItem("1", "Weekly Distance"),
         MenuItem("2", "Weekly Duration"),
@@ -401,6 +405,7 @@ def graph_menu_batch(metrics):
 
 
 def display_menu(label, df_raw, df_type, metrics):
+    """ The display menu"""
     items1 = [
         MenuItem("1", "Table only"),
         MenuItem("2", "Graph only"),

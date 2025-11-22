@@ -232,6 +232,7 @@ def get_single_run_query(conn, run_id: int, metrics: dict):
 
 
 def first_col(df: pd.DataFrame, *candidates: str, default=None):
+    """ Return the first matching column from a list of candidate names, or a default, otherwise raise KeyError. """
     for c in candidates:
         if c in df.columns:
             return df[c]
@@ -241,6 +242,8 @@ def first_col(df: pd.DataFrame, *candidates: str, default=None):
 
 
 def render_single_run_report(df:pd.DataFrame) -> pd.DataFrame:
+    """ Takes a df, gets run ID, calculates duration in seconds and distance in meters,
+     then builds the single run report and then returns the df """
     run_id = int(first_col(df, "run_id", "id").iloc[0])
     # Calculate duration from datetime
     duration_sec = int((df["dt"].max() - df["dt"].min()).total_seconds())
@@ -262,7 +265,7 @@ def render_single_run_report(df:pd.DataFrame) -> pd.DataFrame:
 
 
 def reports_menu(conn, metrics):
-
+    """ The reports menu """
     tz = get_tz_str()
     tzinfo = get_tzinfo()
 
