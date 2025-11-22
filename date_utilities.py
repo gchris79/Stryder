@@ -40,14 +40,14 @@ def prompt_for_timezone(file_name=None):
 
 def input_date(prompt: str) -> datetime:
     """ Takes user input date, combines it with last saved input and convert it to UTC """
-    tzinfo = tzinfo_or_none()       # fetch last saved timezone
+    tz = tzinfo_or_none()       # fetch last saved timezone
     while True:
         raw = input(prompt).strip()
         try:
             # validate format first
             dt = datetime.strptime(raw, "%Y-%m-%d")
             # then convert to UTC using your helper
-            return to_utc(dt, in_tz=tzinfo)
+            return to_utc(dt, in_tz=tz)
         except ValueError:
             print("⚠️ Invalid date format. Please use YYYY-MM-DD (e.g., 2025-09-24).")
 

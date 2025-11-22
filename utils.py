@@ -13,6 +13,7 @@ from runtime_context import get_stryd_path, get_garmin_file
 
 @dataclass
 class MenuItem:
+    """ Menu item class """
     key: str                 # what the user types: "1", "a", "v", etc.
     label: str               # text shown to the user
     action: Optional[Callable[[], None]] = None  # optional callback
@@ -23,38 +24,6 @@ def menu_guard(param_a, *args):
     return (param_a, *args) if param_a else None
 
 
-def fmt_sec_to_hms(total_seconds: int) -> str:
-    total_seconds = int(total_seconds or 0)
-    h = total_seconds // 3600
-    m = (total_seconds % 3600) // 60
-    s = total_seconds % 60
-    return f"{h:02}:{m:02}:{s:02}"
-
-
-def fmt_str_decimals(fl_num) -> str:
-    fmt_num = "{:.2f}".format(fl_num)
-    return fmt_num
-
-
-def fmt_distance(meters) -> float:
-    km = float(meters / 1000)
-    return km
-
-
-def fmt_2dp(kN_per_m: float | None) -> str:
-    if kN_per_m is None or pd.isna(kN_per_m):
-        return "-"
-    return f"{kN_per_m:.1f}"
-
-
-def fmt_pace(min_per_km: float | None, pos) -> str:
-    if not np.isfinite(min_per_km):
-        return ""
-    total_sec = int(round(min_per_km * 60))
-    m, s = divmod(total_sec, 60)
-    return f"{m}:{s:02d}/km"
-
-
 def loadcsv_2df(file):
     """ Loads a csv and returns its dataframe """
     file_df = pd.read_csv(file)
@@ -62,6 +31,7 @@ def loadcsv_2df(file):
 
 
 def calc_df_to_pace(df: pd.DataFrame, seconds_col : str, meters_col : str) -> pd.Series:
+    """ Takes seconds and meters from a dataframe calculates and returns pace """
     elapsed_sec = (df[seconds_col] - df[seconds_col].iloc[0]).dt.total_seconds()
     dist_km = (df[meters_col] - df[meters_col].iloc[0]) / 1000.0
     pace = (elapsed_sec / dist_km.replace(0,np.nan)) / 60
@@ -69,7 +39,7 @@ def calc_df_to_pace(df: pd.DataFrame, seconds_col : str, meters_col : str) -> pd
 
 
 def input_positive_number(prompt: str = "Enter a positive number: ") -> int:
-
+    """ Gets a positive integer from user input """
     while True:
         x = input(prompt).strip()
         try:
@@ -84,7 +54,6 @@ def input_positive_number(prompt: str = "Enter a positive number: ") -> int:
 
 def render_menu(title: str, items: Iterable[MenuItem], footer: str | None = None) -> None:
     """ Menu Display """
-
     print(f"\n=== {title} ===")
     for it in items:
         print(f"[{it.key}] {it.label}")
@@ -94,7 +63,6 @@ def render_menu(title: str, items: Iterable[MenuItem], footer: str | None = None
 
 def prompt_menu(title: str, items: list[MenuItem], allow_back: bool = True, allow_quit: bool = True) -> str:
     """ Create the core of the menu """
-
     # Add "back" , "quit" if missing
     augmented = items.copy()
     if allow_back and not any(i.key.lower() == "b" for i in augmented):
@@ -118,6 +86,7 @@ def prompt_menu(title: str, items: list[MenuItem], allow_back: bool = True, allo
 def print_table(df, tablefmt=None, floatfmt=".2f",
                 numalign="decimal", showindex=False,
                 headers="keys", colalign=None):
+    """ Takes a dataframe and prints it in table format using tabulate """
     # numeric columns should remain floats for alignment
 
     tf = tablefmt or "psql"
@@ -149,6 +118,7 @@ def get_keys(keys):
 
 
 def print_list_table(rows, headers):
+    """ Takes list of tuples and prints the output """
     if not rows:
         print("⚠️ No results found.")
         return
@@ -156,7 +126,7 @@ def print_list_table(rows, headers):
 
 
 def prompt_yes_no(prompt_msg, default=True):
-    # Prompt the user for a yes/no input. Returns True for yes, False for no.
+    """ Prompt the user for a yes/no input. Returns True for yes, False for no. """
     # Default determines what happens on empty input.
     while True:
         user_input = input(f"{prompt_msg} [{'Y/n' if default else 'y/N'}]: ").strip().lower()
@@ -183,6 +153,7 @@ def get_valid_input(prompt, cast_func=int, retries=3, bound_start=None, bound_en
 
 
 def get_paths_with_prompt():
+    """ Loads default Stryd/Garmin paths if they exist else prompts for them, returns the paths """
     # Try to load last used paths
     stryd_path = get_stryd_path()
     garmin_path = get_garmin_file()
@@ -219,8 +190,11 @@ def get_paths_with_prompt():
 
 
 def interactive_run_insert(stryd_file, garmin_file, conn, timezone_str=None) -> bool | None:
+    """ Loads Stryd/Garmin csv's creates df's from them prompts for timezone calls pipeline,
+     checks if there is a match with Garmin csv if not asks to parse witohut match, outputs a report of the tried files """
     from file_parsing import ZeroStrydDataError
     from pipeline import process_csv_pipeline, insert_full_run
+
     file_name = Path(stryd_file).name
 
     # Transform Stryd and Garmin csv's to dataframes

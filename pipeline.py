@@ -2,12 +2,12 @@ import logging
 import pandas as pd
 from db_schema import insert_workout, insert_run, insert_metrics, get_or_create_workout_type
 from file_parsing import (normalize_workout_type, edit_stryd_csv, calculate_duration,
-                          get_matched_garmin_row, is_stryd_all_zero,
-                          ZeroStrydDataError)
-from metrics import align_df_to_metric_keys, STRYD_PARSE_SPEC
+                          get_matched_garmin_row, is_stryd_all_zero, ZeroStrydDataError)
 
 
 def insert_full_run(stryd_df, workout_name, notes, avg_power, avg_hr, total_m,  conn):
+    """ Takes Stryd df creates workout type from workout name, calculates duration,
+        takes run_id and inserts all the metrics, returns workout_id and run_id"""
     if conn is None:
         raise ValueError("❌ Cannot insert run — connection is None")
     # 1. Insert the workout

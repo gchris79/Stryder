@@ -2,7 +2,6 @@ import re
 from collections.abc import Callable
 from datetime import datetime
 from typing import Literal
-
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -12,7 +11,7 @@ from matplotlib.ticker import FuncFormatter, Locator, MultipleLocator
 import matplotlib.dates as mdates
 from metrics import axis_label
 from utils import print_table, prompt_menu, MenuItem, calc_df_to_pace
-from formatting import weekly_table_fmt, fmt_pace_df, fmt_hms_df
+from formatting import weekly_table_fmt, fmt_hm, fmt_pace_no_unit
 
 
 def finish_plot(fig=None, title="plot"):
@@ -54,12 +53,14 @@ def plot_distance_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes
 
 
 def plot_duration_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
-    fmt_hm = FuncFormatter(lambda y, pos: f"{int(y//3600):02}:{int((y%3600)//60):02}")
+    fmt_hour_min = FuncFormatter(lambda y, pos: fmt_hm(y))
     loc_30min = MultipleLocator(1800)  # ticks every 30 minutes
+
     return plot_weekly_series(
-        df,y_col= y_col, label=label,
-        y_formatter=fmt_hm, y_locator=loc_30min
+        df, y_col=y_col, label=label,
+        y_formatter=fmt_hour_min, y_locator=loc_30min
     )
+
 
 def plot_power_over_time_batch(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
     return plot_weekly_series(df, y_col=y_col, label=label)
@@ -180,6 +181,7 @@ def plot_single_series(
     y_locator: Locator | None = None,
     ax=None,
 ):
+    """ Graph plotter for the single report """
     # ---- Backward-compatibility aliases ----
     x_alias = {"duration": "elapsed_sec", "distance": "distance_km", "distance_m": "distance_km"}
     x_col = x_alias.get(x_col, x_col)
@@ -193,7 +195,7 @@ def plot_single_series(
             df["elapsed_sec"] = (df["dt"] - df["dt"].iloc[0]).dt.total_seconds()
         x = pd.to_numeric(df["elapsed_sec"], errors="coerce")
         if x_formatter is None:
-            x_formatter = FuncFormatter(fmt_hms_df)
+            x_formatter = FuncFormatter(fmt_hm)
         if x_locator is None:
             span = float(x.max()) - float(x.min())
             x_locator = 900 if span >= 3600 else 300  # 15-min ticks for runs ≥ 1h
@@ -221,7 +223,7 @@ def plot_single_series(
         # expects per-sample pace (sec/km) computed from dt & distance_m
         y = calc_df_to_pace(df, "dt", "distance_m")
         if y_formatter is None:
-            y_formatter = FuncFormatter(fmt_pace_df)
+            y_formatter = FuncFormatter(fmt_pace_no_unit)
     else:
         raise ValueError(f"y_col '{y_col}' not found in DataFrame and no special handler provided.")
 
@@ -285,6 +287,7 @@ def plot_weekly_series(
     y_locator: Locator | None = None,
     ax=None,
 ):
+    """ Graph plotter for the weekly report """
     if y_col not in weekly.columns:
         raise ValueError(f"y_col '{y_col}' not in DataFrame columns: {list(weekly.columns)}")
 

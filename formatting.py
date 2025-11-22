@@ -3,25 +3,71 @@ import pandas as pd
 from typing import Literal
 from date_utilities import dt_to_string
 from runtime_context import get_tzinfo
-from utils import fmt_sec_to_hms
 
 
+""" format_pace is the core function and fmt_pace_km and fmt_pace_no_unit wrapper functions for picking the mode """
+def fmt_pace_km(seconds):
+    return fmt_pace(seconds, with_unit=True)
 
-def fmt_hms_df(sec, pos=None, mode:Literal["hms","hm"] = "hm" ) -> str:
-    sec = max(0, int(round(sec)))
+def fmt_pace_no_unit(seconds):
+    return fmt_pace(seconds, with_unit=False)
+
+def fmt_pace(seconds: float | int | None, with_unit: bool = False) -> str:
+    """ Takes seconds and returns pace in mm/ss or mm/ss/km format """
+    # Validate input
+    try:
+        sec = float(seconds)
+    except (TypeError, ValueError):
+        return ""
+    if not math.isfinite(sec) or sec <= 0:
+        return ""
+    # Convert and format
+    sec = int(round(sec))
+    m, s = divmod(sec, 60)
+    return f"{m}:{s:02d}" if not with_unit else f"{m}:{s:02d}/km"
+
+
+def fmt_str_decimals(fl_num) -> str:
+    fmt_num = "{:.2f}".format(fl_num)
+    return fmt_num
+
+
+def fmt_distance(meters) -> float:
+    km = float(meters / 1000)
+    return km
+
+
+""" format_seconds is the core function and fmt_hms and fmt_hm wrapper functions for picking the mode """
+def fmt_hms(seconds):
+    return format_seconds(seconds,'hms')
+
+def fmt_hm(seconds):
+    return format_seconds(seconds,'hm')
+
+def format_seconds(
+    seconds,
+    mode:Literal["hms","hm"] = "hm",
+):
+    """ Takes seconds and returns time in hms or hm format """
+    # Check for undesirable values normalizing to 0
+    try:
+        total_sec = float(seconds)
+    except (TypeError, ValueError):
+        total_sec = 0
+    if math.isnan(total_sec):
+        total_sec = 0
+    if total_sec < 0:
+        total_sec = 0
+    # Round to nearest second
+    sec = max(0, int(round(total_sec)))
+
+    # Format to time
     h, rem = divmod(sec, 3600)
     m, s   = divmod(rem, 60)
     return f"{h:02}:{m:02}" if mode == "hm" else f"{h:02}:{m:02}:{s:02}"
 
 
-def fmt_pace_df(sec_per_km, pos=None) -> str:
-    if sec_per_km is None or not math.isfinite(sec_per_km) or sec_per_km <= 0:
-        return ""
-    m, s = divmod(int(round(sec_per_km)), 60)
-    return f"{m}:{s:02d}"  # axis label should carry "(min/km)"
-
-
-def format_view_columns(rows, mode, columns, metrics = None):
+def format_view_columns(rows, mode, metrics = None):
     """Format runs (list of tuples) table for printing"""
     from utils import get_keys
 
@@ -84,7 +130,7 @@ def weekly_table_fmt(weekly_raw:pd.DataFrame, metrics:dict) -> pd.DataFrame:
     # Duration -> H:MM
     if "duration_sec" in out:
         label = metrics["duration"]["label"]
-        out[label] = out["duration_sec"].apply(fmt_sec_to_hms)
+        out[label] = out["duration_sec"].apply(fmt_hms)
         cols.append(label)
 
     # Power

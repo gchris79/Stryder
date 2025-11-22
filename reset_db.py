@@ -2,6 +2,7 @@ from config import DB_PATH
 
 
 def reset_db(conn):
+    """ Prompts for db and resets it """
     cur = conn.cursor()
 
     confirm = input(f"⚠️  This will delete ALL data from {DB_PATH}. Type 'yes' to continue: ")

@@ -15,6 +15,7 @@ class ZeroStrydDataError(Exception):
 
 
 def is_stryd_all_zero(df: pd.DataFrame) -> bool:
+    """ Checks Stryd Speed and watch speed, if zero returns True """
     # Prefer speed check
     if "str_speed" in df.columns:
         spd = pd.to_numeric(df["str_speed"], errors="coerce").fillna(0)
@@ -123,7 +124,7 @@ def get_matched_garmin_row(stryd_df, garmin_df, timezone_str: str | None = None,
 
 
 def calculate_duration(stryd_df):
-
+    """ Calculates durations from local start/end time """
     if 'ts_local' not in stryd_df.columns:
         raise ValueError("DataFrame must contain a 'ts_local' column.")
 

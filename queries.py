@@ -1,8 +1,6 @@
 import sqlite3
 from typing import Literal, Tuple, List
 import pandas as pd
-from fontTools.misc.plistlib import end_date
-
 from date_utilities import input_date
 from formatting import format_view_columns
 from utils import MenuItem, prompt_menu, prompt_yes_no, print_list_table, menu_guard
@@ -13,6 +11,7 @@ pd.set_option('display.width', 150)
 
 
 def views_query() -> str:
+    """ SQL query for views table """
     return """
         SELECT 
             r.id            AS run_id,
@@ -29,6 +28,7 @@ def views_query() -> str:
     """
 
 def for_report_query() -> str:
+    """ SQL query for weekly reports table """
     return""" 
         SELECT
             r.id            AS run_id,

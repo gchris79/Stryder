@@ -8,7 +8,8 @@ from utils import loadcsv_2df
 
 
 def batch_process_stryd_folder(stryd_folder, garmin_csv_path, conn, timezone_str: str | None = None):
-    """ The whole batch parsing process """
+    """ Creates raw df's from Stryd/Garmin files, normalizes them via pipeline,
+      check if run already exists -> skip parsing, if not inserts the run"""
     stryd_files = list(Path(stryd_folder).glob("*.csv"))
     logging.info(f"📦 Found {len(stryd_files)} Stryd CSVs to process.")
 

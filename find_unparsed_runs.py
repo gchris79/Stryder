@@ -9,13 +9,14 @@ from config import DB_PATH
 
 
 def get_existing_datetimes(conn):
+    """ Returns first row datetime from runs table """
     cur = conn.cursor()
     cur.execute("SELECT datetime FROM runs")
     return {row[0] for row in cur.fetchall()}
 
 
 def convert_first_timestamp_to_str(file_path, _tz_ignored):
-
+    """ Creates a dataframe from file takes the earliest sample """
     df = pd.read_csv(file_path)
     df = align_df_to_metric_keys(df, STRYD_PARSE_SPEC, keys={"timestamp_s"})
     if 'timestamp_s' not in df.columns or df['timestamp_s'].empty:

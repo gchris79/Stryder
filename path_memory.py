@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -38,17 +39,31 @@ REQUIRED_PATHS = {
 
 
 def load_json(p: Path) -> dict:
-    if p.exists():
-        return json.loads(p.read_text(encoding="utf-8"))
-    return {}
+    """ Loads json if it's not valid it opens as empty dict """
+    if not p.exists():
+        return {}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logging.warning(f"⚠️ Could not parse {p}. Using empty defaults.")
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def save_json(p: Path, data: dict):
+    """Safely save dict to JSON using atomic write and folder creation."""
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    # Step 1: write to a temporary file
+    tmp = p.with_suffix(p.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    # Step 2: atomically replace the old file
+    tmp.replace(p)
 
 
 def prompt_valid_path(prompt: str, expect: str) -> Path:
+    """ Prompts user for a valid path """
     while True:
         val = input(prompt).strip()
         if not val:
@@ -76,7 +91,7 @@ def prompt_valid_path(prompt: str, expect: str) -> Path:
 
 
 def save_paths(updates: dict[str, Path | str]) -> None:
-    """Canonical writer for STRYD_DIR / GARMIN_CSV_FILE / TIMEZONE."""
+    """ Canonical writer for STRYD_DIR / GARMIN_CSV_FILE / TIMEZONE """
     data = load_json(CONFIG_PATH)
     for k, v in updates.items():
         if isinstance(v, Path):
@@ -87,8 +102,10 @@ def save_paths(updates: dict[str, Path | str]) -> None:
 
 
 def get_saved_timezone() -> str | None:
+    """ Gets timezone from json file """
     return load_json(CONFIG_PATH).get("TIMEZONE")
 
 
 def set_saved_timezone(tz: str) -> None:
+    """ Saves the timezone in json file with json format """
     save_paths({"TIMEZONE": tz})

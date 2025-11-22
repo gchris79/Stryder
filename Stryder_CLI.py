@@ -91,6 +91,7 @@ def configure_logging():
 
 
 def add_import_menu(conn, mode: str | None = None, single_filename: str | None = None) -> bool:
+    """ The main import run option, gets tz, file paths and mode and prompts for batch or single run import"""
     from date_utilities import prompt_for_timezone
     from utils import get_paths_with_prompt
     from batch_import import batch_process_stryd_folder
@@ -179,6 +180,7 @@ def add_import_menu(conn, mode: str | None = None, single_filename: str | None =
 
 
 def launcher_menu(conn, metrics):
+    """ The app's starting menu """
     from reports import reports_menu
     from find_unparsed_runs import main as find_unparsed_main
     from queries import view_menu

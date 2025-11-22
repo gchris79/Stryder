@@ -2,11 +2,12 @@ from datetime import timedelta, datetime, time
 from zoneinfo import ZoneInfo
 import pandas as pd
 from date_utilities import as_local_date, to_utc, dt_to_string, input_date
+from formatting import fmt_hms, fmt_str_decimals
 from metrics import align_df_to_metric_keys
 from queries import view_menu
 from runtime_context import get_tzinfo, get_tz_str
-from utils import prompt_menu, MenuItem, fmt_sec_to_hms, input_positive_number, \
-    get_valid_input, fmt_str_decimals
+from utils import prompt_menu, MenuItem, input_positive_number, \
+    get_valid_input
 from visualizations import display_menu
 
 SINGLE_RUN_SAMPLE_KEYS = {"power_sec", "ground", "lss", "cadence", "vo"}
@@ -187,6 +188,7 @@ def get_report_bounds(
 
 
 def get_single_run_query(conn, run_id: int, metrics: dict):
+    """ Creates query for single run report returns dataframe of that query """
     query = """
         SELECT
             m.id,
@@ -248,7 +250,7 @@ def render_single_run_report(df:pd.DataFrame) -> pd.DataFrame:
     # Building the report df
     row = {
         "Run ID": run_id,
-        "Duration": fmt_sec_to_hms(duration_sec),
+        "Duration": fmt_hms(duration_sec),
         "Distance (km)": round(distance_m / 1000.0, 2),
         "Avg Power": round(first_col(df, "power_sec", "power").mean(), 1),
         "Avg Ground Time": round(first_col(df, "ground").mean(), 1),
@@ -335,7 +337,7 @@ def reports_menu(conn, metrics):
                 dt_local = dt_to_string(to_utc(raw_ts, in_tz=tzinfo), "ymd_hms", tz=tzinfo)      # ...and localize it for display in cool string
                 cool_string = (
                     f'\nRun {row["run_id"]} | {dt_local} | '
-                    f'{row["wt_name"]} | {fmt_str_decimals(row["distance_m"]/1000)} km | {fmt_sec_to_hms(row["duration"])}'
+                    f'{row["wt_name"]} | {fmt_str_decimals(row["distance_m"]/1000)} km | {fmt_hms(row["duration"])}'
                 )
                 print(cool_string)      # print a cool string to show details about the picked run before the report
 
