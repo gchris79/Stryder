@@ -3,7 +3,7 @@ from datetime import datetime, timezone, date, tzinfo
 from typing import Any, Optional, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import tzlocal
-from runtime_context import get_tz_str, get_tzinfo
+from stryder_core.runtime_context import get_tz_str, get_tzinfo
 
 
 def tzinfo_or_none() -> ZoneInfo | None:
@@ -19,56 +19,6 @@ def tz_str_or_none() -> str | None:
         return get_tz_str()
     except RuntimeError:
         return None
-
-
-def prompt_for_timezone(file_name=None):
-    """ Prompt user for timezone """
-    example = "e.g. Europe/Athens"
-    file_msg = f" for {file_name}" if file_name else ""
-    tz_str = input(f"🌍 Timezone ({example}){file_msg} (or 'exit' to quit): ").strip()
-
-    if tz_str.lower() in {"exit", "quit", "q"}:
-        return "EXIT"
-
-    try:
-        ZoneInfo(tz_str)
-        return tz_str
-    except ZoneInfoNotFoundError:
-        print("❌ Invalid timezone. Skipping.")
-        return None
-
-
-def input_date(prompt: str) -> datetime:
-    """ Takes user input date, combines it with last saved input and convert it to UTC """
-    tz = tzinfo_or_none()       # fetch last saved timezone
-    while True:
-        raw = input(prompt).strip()
-        try:
-            # validate format first
-            dt = datetime.strptime(raw, "%Y-%m-%d")
-            # then convert to UTC using your helper
-            return to_utc(dt, in_tz=tz)
-        except ValueError:
-            print("⚠️ Invalid date format. Please use YYYY-MM-DD (e.g., 2025-09-24).")
-
-
-def ensure_default_timezone() -> str | None:
-    """Return stored tz if present; otherwise prompt once, validate, store, and return it."""
-    from path_memory import get_saved_timezone, set_saved_timezone
-    tz = get_saved_timezone()
-    if tz:
-        return tz
-    while True:
-        entered = input("🌍 Default timezone (e.g., Europe/Athens): ").strip()
-        if not entered or entered.lower() == "exit":
-            return None
-        try:
-            # validate
-            _ = ZoneInfo(entered)
-            set_saved_timezone(entered)
-            return entered
-        except ZoneInfoNotFoundError:
-            print("❌ Unknown timezone. Try again (e.g., Europe/Athens).")
 
 
 def to_utc(target: Any, *, in_tz=None) -> datetime:
@@ -121,7 +71,7 @@ def to_utc(target: Any, *, in_tz=None) -> datetime:
             try:
                 dt = target.to_pydatetime()
             except (AttributeError, TypeError, ValueError) as e:
-                print(f"⚠️ Could not convert pandas object: {e}")
+                logging.warning(f"⚠️ Could not convert pandas object: {e}")
                 dt = None
 
     if dt is None:

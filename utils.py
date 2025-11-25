@@ -5,10 +5,10 @@ import pandas as pd
 import logging
 from pathlib import Path
 from tabulate import tabulate
-from date_utilities import prompt_for_timezone
-from path_memory import save_paths
-from db_schema import run_exists
-from runtime_context import get_stryd_path, get_garmin_file
+from stryder_cli.prompts import prompt_for_timezone
+from stryder_core.path_memory import save_paths
+from stryder_core.db_schema import run_exists
+from stryder_core.runtime_context import get_stryd_path, get_garmin_file
 
 
 @dataclass
@@ -113,7 +113,7 @@ def print_table(df, tablefmt=None, floatfmt=".2f",
 
 def get_keys(keys):
     """ Return a list of headers """
-    from metrics import METRICS_SPEC
+    from stryder_core.metrics import METRICS_SPEC
     return [METRICS_SPEC[k]["label"] for k in keys]
 
 
@@ -191,9 +191,9 @@ def get_paths_with_prompt():
 
 def interactive_run_insert(stryd_file, garmin_file, conn, timezone_str=None) -> bool | None:
     """ Loads Stryd/Garmin csv's creates df's from them prompts for timezone calls pipeline,
-     checks if there is a match with Garmin csv if not asks to parse witohut match, outputs a report of the tried files """
-    from file_parsing import ZeroStrydDataError
-    from pipeline import process_csv_pipeline, insert_full_run
+     checks if there is a match with Garmin csv if not asks to parse without match, outputs a report of the tried files """
+    from stryder_core.file_parsing import ZeroStrydDataError
+    from stryder_core.pipeline import process_csv_pipeline, insert_full_run
 
     file_name = Path(stryd_file).name
 

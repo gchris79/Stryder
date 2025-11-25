@@ -1,11 +1,11 @@
 import math
 import pandas as pd
 from typing import Literal
-from date_utilities import dt_to_string
-from runtime_context import get_tzinfo
+from stryder_core.date_utilities import dt_to_string
+from stryder_core.runtime_context import get_tzinfo
 
 
-""" format_pace is the core function and fmt_pace_km and fmt_pace_no_unit wrapper functions for picking the mode """
+""" fmt_pace is the core function and fmt_pace_km and fmt_pace_no_unit wrapper functions for picking the mode """
 def fmt_pace_km(seconds):
     return fmt_pace(seconds, with_unit=True)
 

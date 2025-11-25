@@ -1,8 +1,8 @@
 import logging
 import pandas as pd
 from datetime import timedelta
-from date_utilities import resolve_tz, to_utc
-from metrics import align_df_to_metric_keys, STRYD_PARSE_SPEC, GARMIN_PARSE_SPEC
+from stryder_core.date_utilities import resolve_tz, to_utc
+from stryder_core.metrics import align_df_to_metric_keys, STRYD_PARSE_SPEC, GARMIN_PARSE_SPEC
 
 PARSE_STRYD_CSV_KEYS = {"timestamp_s", "str_dist_m", "str_speed", "power_sec", "ground",
         "cadence", "vo", "stiffness", "ts_local", "delta_s", "dist_delta", "wt_name" }

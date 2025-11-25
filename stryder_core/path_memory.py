@@ -62,34 +62,6 @@ def save_json(p: Path, data: dict):
     tmp.replace(p)
 
 
-def prompt_valid_path(prompt: str, expect: str) -> Path:
-    """ Prompts user for a valid path """
-    while True:
-        val = input(prompt).strip()
-        if not val:
-            print("⚠️ Required path not provided, try again.")
-            continue
-        p = Path(val).expanduser()
-        if expect == "file":
-            if p.is_file():
-                return p
-            print("⚠️ Not a valid file, try again.")
-        elif expect == "dir":
-            if p.exists() and p.is_dir():
-                return p
-            # match old behavior: create it if missing
-            try:
-                p.mkdir(parents=True, exist_ok=True)
-                return p
-            except Exception as e:
-                print(f"⚠️ Could not create directory ({e}). Try again.")
-        else:
-            # Fallback—shouldn't happen with our REQUIRED_PATHS
-            if p.exists():
-                return p
-            print("⚠️ Path does not exist, try again.")
-
-
 def save_paths(updates: dict[str, Path | str]) -> None:
     """ Canonical writer for STRYD_DIR / GARMIN_CSV_FILE / TIMEZONE """
     data = load_json(CONFIG_PATH)

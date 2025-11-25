@@ -9,9 +9,9 @@ import matplotlib, matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.ticker import FuncFormatter, Locator, MultipleLocator
 import matplotlib.dates as mdates
-from metrics import axis_label
+from stryder_core.metrics import axis_label
 from utils import print_table, prompt_menu, MenuItem, calc_df_to_pace
-from formatting import weekly_table_fmt, fmt_hm, fmt_pace_no_unit
+from stryder_core.formatting import weekly_table_fmt, fmt_hm, fmt_pace_no_unit
 
 
 def finish_plot(fig=None, title="plot"):
@@ -87,7 +87,7 @@ def what_to_print(
 ) -> Path | None:  # return saved path if you export, else None
     """ The orchestrator that sets what will be printed. """
 
-    from reports import render_single_run_report
+    from stryder_core.reports import render_single_run_report
 
     if display == "table":
         if  report == "single":

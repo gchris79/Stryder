@@ -1,8 +1,8 @@
 import logging
 import pandas as pd
-from db_schema import insert_workout, insert_run, insert_metrics, get_or_create_workout_type
-from file_parsing import (normalize_workout_type, edit_stryd_csv, calculate_duration,
-                          get_matched_garmin_row, is_stryd_all_zero, ZeroStrydDataError)
+from stryder_core.db_schema import insert_workout, insert_run, insert_metrics, get_or_create_workout_type
+from stryder_core.file_parsing import (normalize_workout_type, edit_stryd_csv, calculate_duration,
+                                       get_matched_garmin_row, is_stryd_all_zero, ZeroStrydDataError)
 
 
 def insert_full_run(stryd_df, workout_name, notes, avg_power, avg_hr, total_m,  conn):

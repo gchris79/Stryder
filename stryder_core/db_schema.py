@@ -1,7 +1,7 @@
 import logging
 import sqlite3
 import pandas as pd
-from date_utilities import to_utc
+from stryder_core.date_utilities import to_utc
 
 
 def connect_db(db_path):
@@ -153,4 +153,14 @@ def insert_metrics(run_id, df, conn):
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', rows)
 
+    conn.commit()
+
+def wipe_all_data(conn):
+    """ Deletes all rows from DB tables. """
+    cur = conn.cursor()
+    cur.execute("DELETE FROM metrics")
+    cur.execute("DELETE FROM runs")
+    cur.execute("DELETE FROM workouts")
+    cur.execute("DELETE FROM workout_types")
+    cur.execute("DELETE FROM sqlite_sequence")
     conn.commit()

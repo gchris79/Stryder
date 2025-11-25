@@ -2,17 +2,14 @@ import sqlite3
 from pathlib import Path
 import logging
 import sys
-from version import get_git_version
-from config import DB_PATH
-from db_schema import connect_db, init_db, run_exists
-from reset_db import reset_db
-from file_parsing import ZeroStrydDataError
-from utils import loadcsv_2df
-from path_memory import REQUIRED_PATHS, CONFIG_PATH, prompt_valid_path, \
-    save_json, load_json
-import runtime_context
-
-
+from stryder_core.import_runs import single_process_stryd_file, batch_process_stryd_folder, find_unparsed_cli
+from stryder_core.version import get_git_version
+from stryder_core.config import DB_PATH
+from stryder_core.db_schema import connect_db, init_db
+from stryder_cli.reset_db import reset_db
+from stryder_core.path_memory import REQUIRED_PATHS, CONFIG_PATH, save_json, load_json
+from stryder_cli.prompts import prompt_valid_path, prompt_for_timezone, ensure_default_timezone
+from stryder_core import runtime_context
 
 VERSION = get_git_version()
 
@@ -40,7 +37,7 @@ def bootstrap_defaults_interactive() -> dict[str, Path]:
     - Sets runtime_context with tz + paths
     - Returns a dict of usable Path objects
     """
-    from date_utilities import resolve_tz, ensure_default_timezone
+    from stryder_core.date_utilities import resolve_tz
 
     data = load_json(CONFIG_PATH)
     resolved: dict[str, Path] = {}
@@ -78,7 +75,6 @@ def configure_connection(conn: sqlite3.Connection) -> None:
     conn.row_factory = sqlite3.Row
 
 
-
 def configure_logging():
     """ Set logging level based on --debug """
     debug = ("--debug" in sys.argv) or ("-d" in sys.argv)
@@ -93,10 +89,7 @@ def configure_logging():
 
 def add_import_menu(conn, mode: str | None = None, single_filename: str | None = None) -> bool:
     """ The main import run option, gets tz, file paths and mode and prompts for batch or single run import"""
-    from date_utilities import prompt_for_timezone
     from utils import get_paths_with_prompt
-    from batch_import import batch_process_stryd_folder
-    from pipeline import process_csv_pipeline, insert_full_run
 
     # 1) Timezone once
     tz = prompt_for_timezone()
@@ -126,65 +119,50 @@ def add_import_menu(conn, mode: str | None = None, single_filename: str | None =
 
     # ---- BATCH MODE BELOW ----
     if mode == "batch":
-        # Batch function only logs; don’t rely on local counters.
-        batch_process_stryd_folder(stryd_path, garmin_file, conn, tz)
-        print("\n📊 Batch complete. (See logs for totals)")
+        result = batch_process_stryd_folder(stryd_path, garmin_file, conn, tz)
+        print("\n📊 Batch import complete.")
+        print(f"   Total files: {result['files_total']}")
+        print(f"   ✅ Parsed:   {result['parsed']}")
+        print(f"   ⏭️ Skipped:  {result['skipped']}")
         return True
 
     # ---- SINGLE MODE BELOW ----
-    # Define names **before** try/except so error prints never reference undefined vars
-    if not single_filename:
-        single_filename = input("📄 Enter STRYD CSV filename (e.g., 6747444.csv): ").strip()
+    elif mode == "single":
+        if not single_filename:
+            single_filename = input("📄 Enter STRYD CSV filename (e.g., 6747444.csv): ").strip()
 
-    src = Path(single_filename)
-    src_name = src.name
-    stryd_file = src if src.is_absolute() else Path(stryd_path) / src
+        src = Path(single_filename)
+        # respect absolute vs relative, like before
+        stryd_file = src if src.is_absolute() else Path(stryd_path) / src
 
-    if not stryd_file.exists():
-        print(f"❌ File not found: {stryd_file}")
+        result = single_process_stryd_file(stryd_file, garmin_file, conn, tz)
+
+        status = result["status"]
+
+        if status == "file_not_found":
+            print(f"❌ File not found: {result['file']}")
+        elif status == "garmin_not_found":
+            print(f"❌ Garmin CSV not found: {result['file']}")
+        elif status == "already_exists":
+            print(f"⚠️ Run at {result['start_time']} is already in the database. Not inserting again.")
+        elif status == "skipped_no_garmin":
+            print(f"⏭️ Skipped {result['file'].name} (no Garmin match within tolerance).")
+        elif status == "zero_data":
+            print(f"⏭️ Skipped {result['file'].name} — zero Stryd data.")
+        elif status == "inserted":
+            print(f"✅ Inserted: {result['file'].name} — {result['summary']}")
+        else:  # "error"
+            print(f"❌ Failed to process {result['file'].name}: {result['error']}")
+
+        return status == "inserted"
+
+    else:
         return False
-    # Transform Stryd and Garmin csv's to dataframes
-    stryd_raw_df = loadcsv_2df(stryd_file)
-    garmin_raw_df = loadcsv_2df(garmin_file)
-
-
-    try:
-        stryd_df, duration_td, avg_power, duration_str, avg_hr, total_m = process_csv_pipeline(
-            stryd_raw_df, garmin_raw_df, tz, stryd_file.name
-        )
-
-        start_time_str = stryd_df['ts_local'].iloc[0].isoformat(sep=' ', timespec='seconds')
-        # Check if run already exists
-        if run_exists(conn, start_time_str):
-            logging.warning(f"⚠️  Run at {start_time_str} already exists. Skipping.")
-            print(f"⚠️ Run at {start_time_str} is already in the database. Not inserting again.")
-            return False
-
-        # Derive workout name if present
-        workout_name = (
-            stryd_df["wt_name"].iloc[0]
-            if "wt_name" in stryd_df.columns and len(stryd_df) > 0
-            else "Unknown"
-        )
-        insert_full_run(stryd_df, workout_name, "", avg_power, avg_hr, total_m, conn)
-        print(f"✅ Inserted: {src_name} - Avg. Power: {avg_power} - Avg.HR: {avg_hr} - {total_m/1000:.2f} km")
-        return True
-
-    except ZeroStrydDataError as e:
-        logging.info(f"⏭️  Skipped: {Path(stryd_file).name} — {e}")
-        return False
-
-    except Exception as e:
-        # Use src_name so we don't depend on stryd_file being in scope
-        print(f"❌ Failed to process {src_name}: {e}")
-        return False
-
 
 def launcher_menu(conn, metrics):
     """ The app's starting menu """
-    from reports import reports_menu
-    from find_unparsed_runs import main as find_unparsed_main
-    from queries import view_menu
+    from stryder_cli.cli_reports import reports_menu
+    from stryder_cli.cli_queries import view_menu
 
     while True:
         print("\n🏁 What would you like to do?")
@@ -200,7 +178,7 @@ def launcher_menu(conn, metrics):
             add_import_menu(conn)
 
         elif choice == "2":
-           find_unparsed_main()
+           find_unparsed_cli()
 
         elif choice == "3":
             view_menu(conn, metrics, "for_views")
@@ -225,7 +203,7 @@ def main():
 
     paths = bootstrap_defaults_interactive()            # Get saved tz, paths, etc.
 
-    from metrics import build_metrics
+    from stryder_core.metrics import build_metrics
 
     metrics = build_metrics("local")            # Build metrics dict
 

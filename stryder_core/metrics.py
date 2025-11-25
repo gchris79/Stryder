@@ -1,9 +1,9 @@
 from functools import partial
 from typing import TypedDict, Literal, Callable, Any
 import pandas as pd
-from formatting import fmt_hms, fmt_distance, fmt_pace_km
-from runtime_context import get_tzinfo
-from date_utilities import to_utc, as_aware
+from stryder_core.formatting import fmt_hms, fmt_distance, fmt_pace_km
+from stryder_core.runtime_context import get_tzinfo
+from stryder_core.date_utilities import to_utc, as_aware
 
 
 class MetricInfo(TypedDict, total=False):
