@@ -71,7 +71,7 @@ def format_seconds(
 
 def format_view_columns(rows, mode, metrics = None):
     """Format runs (list of tuples) table for printing"""
-    from utils import get_keys
+    from stryder_core.utils import get_keys
 
     tz = get_tzinfo()
     headers = None

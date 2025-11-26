@@ -9,8 +9,9 @@ import matplotlib, matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.ticker import FuncFormatter, Locator, MultipleLocator
 import matplotlib.dates as mdates
+from stryder_cli.cli_utils import MenuItem, prompt_menu, print_table
 from stryder_core.metrics import axis_label
-from utils import print_table, prompt_menu, MenuItem, calc_df_to_pace
+from stryder_core.utils import calc_df_to_pace
 from stryder_core.formatting import weekly_table_fmt, fmt_hm, fmt_pace_no_unit
 
 
@@ -238,7 +239,7 @@ def plot_single_series(
     # ---- Plot ----
     mask = np.isfinite(x) & np.isfinite(y)
     ax.plot(x[mask], y[mask], label=(label or None))
-    ax.tick_params(axis="x", rotation=30 )if x_col == "elapsed_sec" else ax.tick_params(axis="x", rotation=rotation)    # tilt x_axis only if its time, not in distance
+    ax.tick_params(axis="x", rotation=30 )if x_col == "elapsed_sec" else ax.tick_params(axis="x", rotation=rotation)    # tilt x_axis only if it's time, not in distance
     ax.grid(True, alpha=0.3)
 
     # ---- Apply formatters ----

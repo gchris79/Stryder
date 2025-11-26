@@ -80,3 +80,44 @@ def ensure_default_timezone() -> str | None:
             return entered
         except ZoneInfoNotFoundError:
             print("❌ Unknown timezone. Try again (e.g., Europe/Athens).")
+
+
+def input_positive_number(prompt: str = "Enter a positive number: ") -> int:
+    """ Gets a positive integer from user input """
+    while True:
+        x = input(prompt).strip()
+        try:
+            number = int(x)
+            if number <= 0:
+                print("Please enter a positive integer (e.g., 4).")
+                continue
+            return number
+        except ValueError:
+            print("Invalid input. Please enter a whole number (e.g., 4).")
+
+
+def prompt_yes_no(prompt_msg, default=True):
+    """ Prompt the user for a yes/no input. Returns True for yes, False for no. """
+    # Default determines what happens on empty input.
+    while True:
+        user_input = input(f"{prompt_msg} [{'Y/n' if default else 'y/N'}]: ").strip().lower()
+        if not user_input:
+            return default
+        if user_input in ["y", "yes"]:
+            return True
+        if user_input in ["n", "no"]:
+            return False
+        print("⚠️ Invalid input. Please enter Y or N.")
+
+
+def get_valid_input(prompt, cast_func=int, retries=3, bound_start=None, bound_end=None):
+    """ Ask the user for input. Returns the cast value if valid, or None if retries are exhausted. """
+    for attempt in range(1, retries + 1):
+        try:
+            return cast_func(input(prompt))
+        except Exception:
+            if attempt < retries:
+                print("⚠️ Invalid input. Try again.")
+            else:
+                print("⚠️ Invalid input. Exiting to main menu...")
+                return None

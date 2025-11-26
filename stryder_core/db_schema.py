@@ -4,8 +4,9 @@ import pandas as pd
 from stryder_core.date_utilities import to_utc
 
 
-def connect_db(db_path):
+def connect_db(db_path) -> sqlite3.Connection:
     """ Gets the connection with the database and returns it """
+    logging.info(f"[DB] Connecting to: {db_path}")
     conn = sqlite3.connect(str(db_path))
     conn.execute("PRAGMA foreign_keys = ON")
     return conn

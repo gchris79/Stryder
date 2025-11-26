@@ -2,7 +2,9 @@ import sqlite3
 from pathlib import Path
 import logging
 import sys
-from stryder_core.import_runs import single_process_stryd_file, batch_process_stryd_folder, find_unparsed_cli
+from stryder_core.import_runs import single_process_stryd_file, batch_process_stryd_folder
+from stryder_cli.cli_unparsed import find_unparsed_cli
+from stryder_core.pipeline import insert_full_run
 from stryder_core.version import get_git_version
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, init_db
@@ -89,7 +91,7 @@ def configure_logging():
 
 def add_import_menu(conn, mode: str | None = None, single_filename: str | None = None) -> bool:
     """ The main import run option, gets tz, file paths and mode and prompts for batch or single run import"""
-    from utils import get_paths_with_prompt
+    from stryder_cli.cli_utils import get_paths_with_prompt
 
     # 1) Timezone once
     tz = prompt_for_timezone()
@@ -136,21 +138,30 @@ def add_import_menu(conn, mode: str | None = None, single_filename: str | None =
         stryd_file = src if src.is_absolute() else Path(stryd_path) / src
 
         result = single_process_stryd_file(stryd_file, garmin_file, conn, tz)
-
         status = result["status"]
-
+        if status == "ok":
+            summary = (
+                f"Avg Power: {result['avg_power']:.2f} W/kg — "
+                f"Avg HR: {result['avg_hr']} bpm — "
+                f"Distance: {result['total_m'] / 1000:.2f} km"
+            )
+        else:
+            summary = None
         if status == "file_not_found":
             print(f"❌ File not found: {result['file']}")
         elif status == "garmin_not_found":
             print(f"❌ Garmin CSV not found: {result['file']}")
         elif status == "already_exists":
-            print(f"⚠️ Run at {result['start_time']} is already in the database. Not inserting again.")
+            print(f"⚠️  Run at {result['start_time']} is already in the database. Not inserting again.")
         elif status == "skipped_no_garmin":
             print(f"⏭️ Skipped {result['file'].name} (no Garmin match within tolerance).")
         elif status == "zero_data":
             print(f"⏭️ Skipped {result['file'].name} — zero Stryd data.")
-        elif status == "inserted":
-            print(f"✅ Inserted: {result['file'].name} — {result['summary']}")
+        elif status == "ok":
+            insert_full_run(result["stryd_df"], result["workout_name"], notes="",
+                            avg_power=result["avg_power"], avg_hr=result["avg_hr"],
+                            total_m=result["total_m"], conn=conn)
+            print(f"✅ Inserted: {result['file'].name} — {summary}")
         else:  # "error"
             print(f"❌ Failed to process {result['file'].name}: {result['error']}")
 

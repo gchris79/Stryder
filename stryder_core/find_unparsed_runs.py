@@ -35,7 +35,7 @@ def find_unparsed_files(stryd_folder: Path, conn) -> dict:
         total_files += 1
         try:
             ts_str = convert_first_timestamp_to_str(file)
-        except Exception:
+        except Exception as e:
             logging.warning(f"Failed to inspect {file.name}: {e}")
             # treat unreadable as unparsed
             unparsed.append(file)
