@@ -145,8 +145,8 @@ def add_import_menu(conn, mode: str | None = None, single_filename: str | None =
                 f"Avg HR: {result['avg_hr']} bpm — "
                 f"Distance: {result['total_m'] / 1000:.2f} km"
             )
-        else:
-            summary = None
+        # else:
+        #     summary = None
         if status == "file_not_found":
             print(f"❌ File not found: {result['file']}")
         elif status == "garmin_not_found":

@@ -6,10 +6,12 @@ from stryder_core.runtime_context import get_tzinfo
 
 
 """ fmt_pace is the core function and fmt_pace_km and fmt_pace_no_unit wrapper functions for picking the mode """
-def fmt_pace_km(seconds):
+def fmt_pace_km(seconds, pos=None):
+    # ----- DON'T ERASE THE "pos=None" its used by the formatter later ------ #
     return fmt_pace(seconds, with_unit=True)
 
-def fmt_pace_no_unit(seconds):
+def fmt_pace_no_unit(seconds, pos=True):
+    # ----- DON'T ERASE THE "pos=None" its used by the formatter later ------ #
     return fmt_pace(seconds, with_unit=False)
 
 def fmt_pace(seconds: float | int | None, with_unit: bool = False) -> str:
@@ -40,10 +42,12 @@ def fmt_distance(meters) -> float:
 
 
 """ format_seconds is the core function and fmt_hms and fmt_hm wrapper functions for picking the mode """
-def fmt_hms(seconds):
+def fmt_hms(seconds, pos=None):
+    # ----- DON'T ERASE THE "pos=None" its used by the formatter later ------ #
     return format_seconds(seconds,'hms')
 
-def fmt_hm(seconds):
+def fmt_hm(seconds, pos=None):
+    # ----- DON'T ERASE THE "pos=None" its used by the formatter later ------ #
     return format_seconds(seconds,'hm')
 
 def format_seconds(

@@ -53,8 +53,8 @@ def fetch_page(
     """ Takes a db connection a base query, base params, the last cursor and the page size
      a) gives option to return full table if no page size provided
      b) adds WHERE, AND if needed
-     c) ads ORDER afterwards
-     d) checks if its the end of the query or not
+     c) ads ORDER afterward
+     d) checks if it's the end of the query or not
      e) returns rows, columns and cursor_next for the page """
 
     # No pagination: return the full table, ignore cursor/lookahead
