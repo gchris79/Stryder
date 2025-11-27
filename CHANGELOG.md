@@ -5,6 +5,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+## [1.6.0] - 2025-11-27
+### 🎯 Core / CLI Split & Stability Improvements
+
+### Major Changes
+- Refactored codebase to separate core logic from the CLI interface, improving modularity and preparing for future UI layers (Textual, Django).
+- Unified parsing, matching, and reporting logic inside the core module.
+### Improvements
+- More consistent and stable single-run and batch parsing behavior.
+- Single-run now properly detects and skips already-inserted runs.
+- Cleaner and more predictable handling of logs and CLI output.
+### Visualizations
+- Fixed Matplotlib tick formatter signature issues (fmt_hm, fmt_hms, fmt_pace_km, fmt_pace_no_unit).
+- Improved time and pace axis formatting for reports.
+### Bug Fixes
+- Resolved TypeError in visualizations due to missing (value, pos) signature.
+- Fixed edge cases involving elapsed time calculations.
+- General cleanup and removal of outdated code paths.
+
+---
+## [1.5.1] – 2025-11-22
+### 📑 Function Documentation
+
+- Single line documentation for all the functions
+- Fixed a bug in views that surfaced after refactoring
+
+---
 ## [1.5.0] – 2025-11-15
 ### 🎯 Major Refactor: Canonical Metrics & Weekly Reports
 
