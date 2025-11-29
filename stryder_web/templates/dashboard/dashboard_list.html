@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard · Stryder Web{% endblock %}
+
+{% block content %}
+  <h2>Last 7 days – runs</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Workout</th>
+        <th>Distance (km)</th>
+        <th>Duration</th>
+        <th>Avg Power</th>
+        <th>Avg HR</th>
+        <th>Workout type</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for run in runs %}
+        <tr>
+          <td>{{ run.datetime }}</td>
+          <td>{{ run.wt_name }}</td>
+          <td>{{ run.distance_m }}</td>
+          <td>{{ run.duration_sec }}</td>
+          <td>{{ run.avg_power }}</td>
+          <td>{{ run.avg_hr }}</td>
+          <td>{{ run.wt_type }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5">No runs in the last 7 days.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
