@@ -5,7 +5,7 @@
 {% block content %}
   <h2>Last 7 days – runs</h2>
 
-  <table>
+  <table style="gap:.5rem; align-items:center;">
     <thead>
       <tr>
         <th>Date</th>
@@ -20,10 +20,10 @@
     <tbody>
       {% for run in runs %}
         <tr>
-          <td>{{ run.datetime }}</td>
+          <td>{{ run.dt }}</td>
           <td>{{ run.wt_name }}</td>
-          <td>{{ run.distance_m }}</td>
-          <td>{{ run.duration_sec }}</td>
+          <td>{{ run.distance }}</td>
+          <td>{{ run.duration }}</td>
           <td>{{ run.avg_power }}</td>
           <td>{{ run.avg_hr }}</td>
           <td>{{ run.wt_type }}</td>

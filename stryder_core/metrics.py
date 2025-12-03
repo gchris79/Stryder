@@ -1,7 +1,7 @@
 from functools import partial
 from typing import TypedDict, Literal, Callable, Any
 import pandas as pd
-from stryder_core.formatting import fmt_hms, fmt_distance, fmt_pace_km
+from stryder_core.formatting import fmt_hms, fmt_pace_km, fmt_str_decimals, fmt_distance_km_str
 from stryder_core.runtime_context import get_tzinfo
 from stryder_core.date_utilities import to_utc, as_aware
 
@@ -71,9 +71,9 @@ def build_metrics(dt_mode: Literal["local", "utc"] = "local"):
     """ Builds a dictionary based on the METRICS_SPEC registry """
     reg = {"id":str, "wt_name":str, "wt_type":str,
            "dt":make_dt_value(dt_mode),
-           "power":float, "duration": fmt_hms, "pace":fmt_pace_km,
-           "ground":int, "lss":float, "cadence":int,
-           "vo":float, "distance":fmt_distance, "HR":int}
+           "power":fmt_str_decimals, "duration": fmt_hms, "pace":fmt_pace_km,
+           "ground":int, "lss":fmt_str_decimals, "cadence":int,
+           "vo":fmt_str_decimals, "distance":fmt_distance_km_str, "HR":int}
     return {k: {**spec, "formatter": reg[spec["formatter"]]} for k, spec in METRICS_SPEC.items()}
 
 

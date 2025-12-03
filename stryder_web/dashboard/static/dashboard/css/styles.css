@@ -1,0 +1,16 @@
+h1,h2 {
+    text-align: center;
+}
+
+table {
+    text-align: center;
+    border-collapse: separate; /* important */
+    border-spacing: 20px 10px; /* horizontal vertical */
+}
+
+body {
+    font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;
+    max-width:900px;
+    margin:2rem auto;
+    padding:0 1rem;
+}

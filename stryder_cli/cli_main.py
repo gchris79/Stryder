@@ -2,16 +2,18 @@ import sqlite3
 from pathlib import Path
 import logging
 import sys
+from stryder_core.bootstrap import core_resolve_timezone, validate_path
 from stryder_core.import_runs import single_process_stryd_file, batch_process_stryd_folder
 from stryder_cli.cli_unparsed import find_unparsed_cli
 from stryder_core.pipeline import insert_full_run
+from stryder_core.runtime_context import set_context
 from stryder_core.version import get_git_version
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, init_db
 from stryder_cli.reset_db import reset_db
 from stryder_core.path_memory import REQUIRED_PATHS, CONFIG_PATH, save_json, load_json
 from stryder_cli.prompts import prompt_valid_path, prompt_for_timezone, ensure_default_timezone
-from stryder_core import runtime_context
+
 
 VERSION = get_git_version()
 
@@ -39,17 +41,16 @@ def bootstrap_defaults_interactive() -> dict[str, Path]:
     - Sets runtime_context with tz + paths
     - Returns a dict of usable Path objects
     """
-    from stryder_core.date_utilities import resolve_tz
 
     data = load_json(CONFIG_PATH)
-    resolved: dict[str, Path] = {}
+    resolved = {}
 
     # 1) Resolve/validate required paths
     for key, expect in REQUIRED_PATHS.items():
         raw = data.get(key)
         p = Path(raw).expanduser() if raw else None
 
-        if not p or not p.exists() or (expect == "file" and not p.is_file()) or (expect == "dir" and not p.is_dir()):
+        if not validate_path(p, expect):
             # Missing or invalid → prompt
             icon = "📄" if expect == "file" else "📁"
             p = prompt_valid_path(f"{icon} Path for {key} ({expect}): ", expect)
@@ -61,13 +62,13 @@ def bootstrap_defaults_interactive() -> dict[str, Path]:
 
     # 2) Timezone via existing helper (prompt once if needed)
     tz_str = ensure_default_timezone()  # e.g., returns "Europe/Athens" or similar
-    tzinfo = resolve_tz(tz_str) if tz_str else None
+    tz_str, tzinfo = core_resolve_timezone(tz_str)
 
     # 3) Announce and set runtime context (so anything can read it later)
     stryd = resolved["STRYD_DIR"]
     garmin = resolved["GARMIN_CSV_FILE"]
     print(f"🧠 Defaults ➜ 📁 {stryd} | 📄 {garmin} | 🌍 {tz_str}")
-    runtime_context.set_context(tz_str=tz_str, tzinfo=tzinfo, stryd_path=stryd, garmin_file=garmin)
+    set_context(tz_str=tz_str, tzinfo=tzinfo, stryd_path=stryd, garmin_file=garmin)
 
     return resolved
 
