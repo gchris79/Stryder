@@ -6,7 +6,7 @@ from stryder_cli.cli_utils import MenuItem, prompt_menu, print_table
 from stryder_core.metrics import axis_label
 from stryder_core.plot_core import plot_distance_over_time, plot_duration_over_time, plot_power_over_time_batch, \
     plot_hr_over_time, plot_single_series, save_plot
-from stryder_core.formatting import weekly_table_fmt
+from stryder_core.table_formatters import weekly_table_fmt
 
 
 def resolve_plots_dir() -> Path:

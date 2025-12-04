@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib import dates as mdates, pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.ticker import FuncFormatter, MultipleLocator, Locator
-from stryder_core.formatting import fmt_hm, fmt_pace_no_unit
+from stryder_core.utils_formatting import fmt_hm, fmt_pace_no_unit
 from stryder_core.utils import calc_df_to_pace
 
 

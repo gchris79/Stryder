@@ -1,7 +1,7 @@
 from functools import partial
 from typing import TypedDict, Literal, Callable, Any
 import pandas as pd
-from stryder_core.formatting import fmt_hms, fmt_pace_km, fmt_str_decimals, fmt_distance_km_str
+from stryder_core.utils_formatting import fmt_hms, fmt_pace_km, fmt_str_decimals, fmt_distance_km_str
 from stryder_core.runtime_context import get_tzinfo
 from stryder_core.date_utilities import to_utc, as_aware
 

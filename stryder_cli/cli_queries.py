@@ -3,7 +3,7 @@ from typing import Literal
 from stryder_cli.cli_utils import MenuItem, menu_guard, prompt_menu, print_list_table
 from stryder_core.queries import fetch_page, views_query, for_report_query
 from stryder_cli.prompts import input_date, prompt_yes_no
-from stryder_core.formatting import format_view_columns
+from stryder_core.table_formatters import format_view_columns
 
 
 def paginate_runs(conn, base_query, mode, metrics, base_params=(), page_size: int = 20):

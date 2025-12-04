@@ -5,7 +5,7 @@
 {% block content %}
   <h2>Last 7 days – runs</h2>
 
-  <table style="gap:.5rem; align-items:center;">
+  <table>
     <thead>
       <tr>
         <th>Date</th>
@@ -28,11 +28,19 @@
           <td>{{ run.avg_hr }}</td>
           <td>{{ run.wt_type }}</td>
         </tr>
-      {% empty %}
-        <tr>
-          <td colspan="5">No runs in the last 7 days.</td>
-        </tr>
       {% endfor %}
+        <tr>
+          <th>Runs</th>
+          <th>Distance</th>
+          <th>Duration</th>
+        </tr>
+        <tr>
+          <td>{{ summary.runs }}</td>
+          <td>{{ summary.distance }}</td>
+          <td>{{ summary.duration }}</td>
+      </tr>
+
     </tbody>
   </table>
+
 {% endblock %}

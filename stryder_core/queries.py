@@ -33,6 +33,26 @@ def for_report_query() -> str:
     """
 
 
+def fetch_runs_for_window() -> str:
+    """ SQL query for custom window reports """
+    return"""
+    SELECT 
+        r.id AS run_id,
+        r.datetime AS datetime_utc,
+        r.duration_sec,
+        r.distance_m AS meters,
+        r.avg_power,
+        r.avg_hr,
+        w.workout_name,
+        wt.name AS workout_type
+    FROM runs r
+    JOIN workouts w ON r.workout_id = w.id
+    LEFT JOIN workout_types wt ON w.workout_type_id = wt.id
+    WHERE r.datetime BETWEEN ? AND ?
+    ORDER BY r.datetime
+    """
+
+
 def _fetch(conn: sqlite3.Connection, sql: str, params: tuple = ()
            ) -> Tuple[List[sqlite3.Row], List[str]]:
     """ Execute a SQL SELECT query and return (rows, column_names) in the order returned by SQLite. """

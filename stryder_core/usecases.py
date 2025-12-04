@@ -1,34 +1,12 @@
 from datetime import date, timedelta
-from stryder_core import runtime_context
-from stryder_core.config import DB_PATH
-from stryder_core.date_utilities import dt_to_string
-from stryder_core.db_schema import connect_db
 from stryder_core.metrics import build_metrics
 from stryder_core.queries import fetch_page, views_query
+from stryder_core.reports import custom_dates_report
+from stryder_core.table_formatters import format_row_for_ui, format_summary_for_ui
 
 
-def format_row_for_ui(row_dict, metrics) -> dict:
-    """ Format dict row for UI printing """
-    # Convert raw DB value -> datetime object using the same formatter as CLI
-    dt_obj = metrics["dt"]["formatter"](row_dict["datetime"])
-
-    # Get tzinfo from runtime_context (assuming you've already set it somewhere)
-    tzinfo = runtime_context.get_tzinfo()
-
-    return {
-        "dt": dt_to_string(dt_obj, "ymd", tz=tzinfo),
-        "distance": metrics["distance"]["formatter"](row_dict["distance_m"]),
-        "duration": metrics["duration"]["formatter"](row_dict["duration_sec"]),
-        "avg_power": metrics["power_avg"]["formatter"](row_dict["avg_power"]),
-        "avg_hr": row_dict["avg_hr"],
-        "wt_name": row_dict["wt_name"],
-        "wt_type": row_dict["wt_type"],
-    }
-
-
-def get_last_week_for_ui(db_path=DB_PATH, days=30) -> list:
-    """ Get last week (set up by days) runs from db and return list of runs """
-    conn = connect_db(db_path)
+def get_last_days_for_ui(conn, days) -> tuple:
+    """ Get last days runs from db and return a tuple of runs """
 
     end_date = date.today()
     start_date = end_date - timedelta(days=days)
@@ -40,9 +18,39 @@ def get_last_week_for_ui(db_path=DB_PATH, days=30) -> list:
 
     metrics = build_metrics("local")
 
-
     runs = []
     for row in rows:
         row_dict = dict(zip(columns, row))          # turn tuple → dict
         runs.append(format_row_for_ui(row_dict, metrics))
-    return runs
+    return runs, start_date, end_date
+
+
+def get_dashboard_summary(conn, tz_name: str, days) -> dict:
+    """ Create a list of runs for the last x days and
+        a summary for those runs in dashboard """
+    runs, start_date, end_date = get_last_days_for_ui(conn, days=days)
+    label, df_summary = custom_dates_report(
+        conn,
+        tz_name,
+        mode="rolling",   # ignored for custom range, but fine
+        end_date=end_date,
+        start_date=start_date,
+    )
+    if df_summary.empty:
+        summary = None
+    else:
+        row = df_summary.iloc[0]
+        summary = {
+            "label": label,
+            "runs": int(row["runs"]),
+            "distance_km": float(row["distance_km"]),
+            "duration_sec": int(row["duration_sec"]),
+            "avg_power": float(row["avg_power"]) if row["avg_power"] is not None else None,
+            "avg_hr": float(row["avg_hr"]) if row["avg_hr"] is not None else None,
+        }
+    formated_summary = format_summary_for_ui(summary)
+    return {
+        "runs": runs,
+        "summary": formated_summary,
+    }
+

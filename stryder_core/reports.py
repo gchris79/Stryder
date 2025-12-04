@@ -1,8 +1,11 @@
-from datetime import timedelta, datetime, time
+from datetime import timedelta, datetime, time, date
 from zoneinfo import ZoneInfo
 import pandas as pd
+from pandas.core.interchange.dataframe_protocol import DataFrame
+
 from stryder_core.date_utilities import as_local_date
-from stryder_core.formatting import fmt_hms
+from stryder_core.queries import fetch_runs_for_window
+from stryder_core.utils_formatting import fmt_hms
 from stryder_core.metrics import align_df_to_metric_keys
 
 SINGLE_RUN_SAMPLE_KEYS = {"power_sec", "ground", "lss", "cadence", "vo"}
@@ -37,25 +40,8 @@ def weekly_report(
         )
 
     # SQL fetch for the entire window
-    df = pd.read_sql(
-        """
-        SELECT 
-            r.id AS run_id,
-            r.datetime AS datetime_utc,
-            r.duration_sec,
-            r.distance_m AS meters,
-            r.avg_power,
-            r.avg_hr,
-            w.workout_name,
-            wt.name AS workout_type
-        FROM runs r
-        JOIN workouts w ON r.workout_id = w.id
-        LEFT JOIN workout_types wt ON w.workout_type_id = wt.id
-        WHERE r.datetime BETWEEN ? AND ?
-        ORDER BY r.datetime
-        """,
-        conn, params=(start_utc, end_utc)
-    )
+    df = pd.read_sql(fetch_runs_for_window(),
+        conn, params=(start_utc, end_utc))
 
     if df.empty:
         cols = ["week_start", "week_end", "runs", "distance_km", "duration_sec", "avg_power", "avg_hr"]
@@ -107,6 +93,89 @@ def weekly_report(
     )
 
     return label, weekly_raw
+
+
+def custom_dates_report(
+        conn,
+        tz_name: str,
+        mode: str, *,
+        end_date: datetime | None = None,
+        start_date: datetime | None = None
+) -> tuple[str, DataFrame]:
+
+    # Validation
+    have_range = (start_date is not None) and (end_date is not None)
+    if not have_range:
+        raise ValueError("Provide start_date+end_date.")
+
+    # Normalize date → datetime if needed
+    if isinstance(start_date, date) and not isinstance(start_date, datetime):
+        start_date = datetime.combine(start_date, time.min)
+
+    if isinstance(end_date, date) and not isinstance(end_date, datetime):
+        end_date = datetime.combine(end_date, time.min)
+
+    # Get bounds calculation
+    start_utc, end_utc, label = get_report_bounds(
+        mode=mode,
+        tz_name=tz_name,
+        weeks=1,
+        end_date=end_date,
+        start_date=start_date,
+    )
+    # SQL fetch for the entire window
+    df = pd.read_sql(fetch_runs_for_window(),
+        conn, params=(start_utc, end_utc))
+
+    if df.empty:
+        cols = ["start_date", "end_date", "runs", "distance_km", "duration_sec", "avg_power", "avg_hr"]
+        return label, pd.DataFrame(columns=cols)
+    # guard to avoid duplicates
+    if "run_id" in df.columns:
+        df = df.drop_duplicates(subset=["run_id"], keep="first")
+
+    tz = ZoneInfo(tz_name)
+
+    # Make DateTime tz-aware & convert to local
+    dt = pd.to_datetime(df["datetime_utc"], utc=True, errors="coerce")
+    df["dt_local"] = dt.dt.tz_convert(tz)
+
+    # Working columns
+    df["km"] = (df["meters"].fillna(0) / 1000.0)
+    df["duration_sec"] = df["duration_sec"].fillna(0).astype(int)
+
+    # Get start date and end date in local timezone
+    start_local = pd.Timestamp(start_utc, tz="UTC").tz_convert(tz)
+    end_local = pd.Timestamp(end_utc, tz="UTC").tz_convert(tz) - timedelta(seconds=1)
+
+    # Aggregate per custom window
+    agg = df.agg({
+        "run_id": "count",
+        "km":"sum",
+        "duration_sec":"sum",
+        "avg_power":"mean",
+        "avg_hr":"mean"
+    })
+
+    # RAW canonical names
+    summary = agg.rename({
+            "run_id": "runs",
+            "km": "distance_km",
+            "duration_sec": "duration_sec",
+            "avg_power": "avg_power",
+            "avg_hr": "avg_hr",
+        }).to_frame().T
+    # Add date columns
+    summary["start_date"] = start_local.date()
+    summary["end_date"] = end_local.date()
+
+    # Reorder columns
+    summary = summary[[
+        "start_date", "end_date",
+        "runs", "distance_km", "duration_sec",
+        "avg_power", "avg_hr",
+    ]]
+    return label, summary
 
 
 def get_report_bounds(
