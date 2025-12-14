@@ -55,9 +55,9 @@ def dashboard_list(request):
     ctx = get_dashboard_summary(conn, tz_str, end_date=end_dt,
         start_date=start_dt, keyword=key if key else None)
 
-    # 7) overwrite runs in ctx with ORM runs + inject filters
-    ctx["runs"] = qs
-    ctx["key"] = key              # so the form keeps the typed keyword
+    # 7) Build ctx for use in filtering
+    ctx["runs_qs"] = qs           # use this only if I want ORM
+    ctx["key"] = key              # form keeps the typed keyword
     ctx["start"] = start_raw
     ctx["end"] = end_raw
 

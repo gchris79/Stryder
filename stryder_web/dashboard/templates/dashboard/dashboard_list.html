@@ -3,7 +3,7 @@
 {% block title %}Dashboard · Stryder Web{% endblock %}
 
 {% block content %}
-  <h2>Last 7 days – runs</h2>
+  <h2>Runs - Summary</h2>
 
   <div class="search_bar">
     <form method="get">
@@ -36,13 +36,13 @@
       <tbody>
         {% for run in runs %}
           <tr>
-            <td>{{ run.datetime|date:"m-d-Y" }}</td>
-            <td>{{ run.workout.workout_name }}</td>
-            <td>{{ run.distance_m|floatformat:0 }}</td>
-            <td>{{ run.duration_sec }}</td>
+            <td>{{ run.dt }}</td>
+            <td>{{ run.wt_name }}</td>
+            <td>{{ run.distance }}</td>
+            <td>{{ run.duration }}</td>
             <td>{{ run.avg_power }}</td>
             <td>{{ run.avg_hr }}</td>
-            <td>{{ run.workout.workout_type.name }}</td>
+            <td>{{ run.wt_type }}</td>
           </tr>
         {% endfor %}
       </tbody>
