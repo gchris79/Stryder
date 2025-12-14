@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime, timezone
 from typing import Tuple, List
 
 
@@ -33,9 +34,41 @@ def for_report_query() -> str:
     """
 
 
-def fetch_runs_for_window() -> str:
+def _sqlite_dt(x):
+    """ Normalizes params for SQL use later """
+    # If it's already a string, normalize common ISO forms
+    if isinstance(x, str):
+        s = x.replace("T", " ").replace("Z", "")
+        # drop timezone offset if present (keeps 'YYYY-MM-DD HH:MM:SS')
+        if "+" in s:
+            s = s.split("+", 1)[0]
+        if "-" in s[19:]:  # handles ...-02:00 offsets sometimes
+            s = s[:19]
+        return s[:19]
+
+    # If it's a datetime, convert to UTC and drop tz, format as 'YYYY-MM-DD HH:MM:SS'
+    if isinstance(x, datetime):
+        if x.tzinfo is not None:
+            x = x.astimezone(timezone.utc).replace(tzinfo=None)
+        return x.strftime("%Y-%m-%d %H:%M:%S")
+
+    return x
+
+
+def build_window_query_and_params(start_utc, end_utc, keyword: str | None = None):
+    """ Helper for fetch_runs_for_window to match the params with the query """
+    params = [_sqlite_dt(start_utc), _sqlite_dt(end_utc)]
+
+    query = fetch_runs_for_window(include_keyword=bool(keyword))
+
+    if keyword:
+        params.append(f"%{keyword}%")
+    return query, tuple(params)
+
+
+def fetch_runs_for_window(include_keyword: bool = False) -> str:
     """ SQL query for custom window reports """
-    return"""
+    base = """
     SELECT 
         r.id AS run_id,
         r.datetime AS datetime_utc,
@@ -49,8 +82,13 @@ def fetch_runs_for_window() -> str:
     JOIN workouts w ON r.workout_id = w.id
     LEFT JOIN workout_types wt ON w.workout_type_id = wt.id
     WHERE r.datetime BETWEEN ? AND ?
-    ORDER BY r.datetime
     """
+    if include_keyword:
+        base += " AND w.workout_name LIKE ?"
+
+    base += " ORDER BY r.datetime"
+
+    return base
 
 
 def _fetch(conn: sqlite3.Connection, sql: str, params: tuple = ()

@@ -9,12 +9,17 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import json
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# if you have CONFIG_PATH already in core, you can hardcode or reuse it
+CONFIG_PATH = "/media/gchr/Data/PyCharm Projects/Stryder/stryder_core/last_used_paths.json" # adjust to your real path
+
+with open(CONFIG_PATH) as f:
+    core_config = json.load(f)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -78,7 +83,7 @@ WSGI_APPLICATION = 'stryder_web.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': "/media/gchr/Data/PyCharm Projects/Stryder/runs_data.db",
     }
 }
 

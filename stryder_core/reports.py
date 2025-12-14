@@ -2,9 +2,8 @@ from datetime import timedelta, datetime, time, date
 from zoneinfo import ZoneInfo
 import pandas as pd
 from pandas.core.interchange.dataframe_protocol import DataFrame
-
 from stryder_core.date_utilities import as_local_date
-from stryder_core.queries import fetch_runs_for_window
+from stryder_core.queries import build_window_query_and_params
 from stryder_core.utils_formatting import fmt_hms
 from stryder_core.metrics import align_df_to_metric_keys
 
@@ -40,8 +39,8 @@ def weekly_report(
         )
 
     # SQL fetch for the entire window
-    df = pd.read_sql(fetch_runs_for_window(),
-        conn, params=(start_utc, end_utc))
+    query, params = build_window_query_and_params(start_utc, end_utc)
+    df = pd.read_sql(query, conn, params=params)
 
     if df.empty:
         cols = ["week_start", "week_end", "runs", "distance_km", "duration_sec", "avg_power", "avg_hr"]
@@ -76,8 +75,8 @@ def weekly_report(
                   HR=("avg_hr","mean"))
              .reset_index())
 
-    agg["week_start"] = agg["week_idx"].map(lambda i: start_local + timedelta(days=7 * int(i)))
-    agg["week_end"] = agg["week_start"] + timedelta(days=7)
+    agg["week_start"] = start_local + pd.to_timedelta(agg["week_idx"].astype(int) * 7, unit="D")
+    agg["week_end"] = agg["week_start"] + pd.to_timedelta(7, unit="D")
 
     # RAW canonical names
     weekly_raw = (
@@ -100,7 +99,8 @@ def custom_dates_report(
         tz_name: str,
         mode: str, *,
         end_date: datetime | None = None,
-        start_date: datetime | None = None
+        start_date: datetime | None = None,
+        keyword: str | None = None
 ) -> tuple[str, DataFrame]:
 
     # Validation
@@ -123,9 +123,10 @@ def custom_dates_report(
         end_date=end_date,
         start_date=start_date,
     )
-    # SQL fetch for the entire window
-    df = pd.read_sql(fetch_runs_for_window(),
-        conn, params=(start_utc, end_utc))
+
+    # get the query matched with its parameters
+    query, params = build_window_query_and_params(start_utc, end_utc, keyword)
+    df = pd.read_sql(query, conn, params=params)
 
     if df.empty:
         cols = ["start_date", "end_date", "runs", "distance_km", "duration_sec", "avg_power", "avg_hr"]

@@ -5,16 +5,38 @@ from stryder_core.reports import custom_dates_report
 from stryder_core.table_formatters import format_row_for_ui, format_summary_for_ui
 
 
-def get_last_days_for_ui(conn, days) -> tuple:
-    """ Get last days runs from db and return a tuple of runs """
+def get_last_days_for_ui(conn, days: int | None = None,
+                         end_date: date | None = None,
+                         start_date: date | None = None,
+                         keyword: str | None = None,
+                         ) -> tuple:
+    """Get runs and dates for either:
+       - last `days`, or
+       - explicit [start_date, end_date] range.
+    Returns (runs_for_ui, start_date, end_date).
+    """
+    # days or dates should be inserted else error
+    if days is not None:
+        end_date = date.today()
+        start_date = end_date - timedelta(days=days-1)
 
-    end_date = date.today()
-    start_date = end_date - timedelta(days=days)
+    if start_date is None or end_date is None:
+        raise ValueError("get_last_days_for_ui requires either days or start/end dates")
+
+    # create the query check for dates and the keyword
     query = views_query()
-    query += " WHERE r.datetime BETWEEN ? AND ?"
-    base_params = (start_date, end_date)
+    conditions = ["r.datetime BETWEEN ? AND ?"]
+    params: list = [start_date, end_date]
 
-    rows, columns, _ = fetch_page(conn, query, base_params, page_size=0)
+    if keyword:
+        # Search by workout name, also by type name
+        conditions.append("(w.workout_name LIKE ? OR wt.name LIKE ?)")
+        params.append(f"%{keyword}%")
+        params.append(f"%{keyword}%")
+
+    query += " WHERE " + " AND ".join(conditions)
+
+    rows, columns, _ = fetch_page(conn, query, tuple(params), page_size=0)
 
     metrics = build_metrics("local")
 
@@ -22,20 +44,34 @@ def get_last_days_for_ui(conn, days) -> tuple:
     for row in rows:
         row_dict = dict(zip(columns, row))          # turn tuple → dict
         runs.append(format_row_for_ui(row_dict, metrics))
-    return runs, start_date, end_date
+    return runs, end_date, start_date
 
 
-def get_dashboard_summary(conn, tz_name: str, days) -> dict:
-    """ Create a list of runs for the last x days and
-        a summary for those runs in dashboard """
-    runs, start_date, end_date = get_last_days_for_ui(conn, days=days)
+def get_dashboard_summary(conn, tz_name,
+                          days: int | None =    None,
+                          end_date: date | None = None,
+                          start_date: date | None = None,
+                          keyword: str | None = None,) -> dict:
+    """Build ctx with 'runs' (formatted for UI) and 'summary' for dashboard."""
+
+    # if days is given, ignore start/end; otherwise use explicit range
+    runs, end_date, start_date = get_last_days_for_ui(
+        conn,
+        days=days,
+        end_date=end_date,
+        start_date=start_date,
+        keyword=keyword,
+    )
+
     label, df_summary = custom_dates_report(
         conn,
         tz_name,
-        mode="rolling",   # ignored for custom range, but fine
+        mode="rolling",   # ignored for custom range, fine
         end_date=end_date,
         start_date=start_date,
+        keyword=keyword
     )
+
     if df_summary.empty:
         summary = None
     else:
@@ -49,6 +85,7 @@ def get_dashboard_summary(conn, tz_name: str, days) -> dict:
             "avg_hr": float(row["avg_hr"]) if row["avg_hr"] is not None else None,
         }
     formated_summary = format_summary_for_ui(summary)
+
     return {
         "runs": runs,
         "summary": formated_summary,

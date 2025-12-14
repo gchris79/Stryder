@@ -2,10 +2,23 @@ h1,h2 {
     text-align: center;
 }
 
+.search_bar {
+    text-align:center;
+}
+
+input {
+    border-radius: 8px;
+    border: 2px solid #D3D3D3;
+}
+
 table {
     text-align: center;
     border-collapse: separate; /* important */
-    border-spacing: 20px 10px; /* horizontal vertical */
+    border-spacing: 20px 10px;
+    border: 2px solid #D3D3D3;
+    border-radius: 20px;
+    margin: 2rem auto;
+    width: auto;
 }
 
 body {

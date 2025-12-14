@@ -5,42 +5,67 @@
 {% block content %}
   <h2>Last 7 days – runs</h2>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Workout</th>
-        <th>Distance (km)</th>
-        <th>Duration</th>
-        <th>Avg Power</th>
-        <th>Avg HR</th>
-        <th>Workout type</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for run in runs %}
+  <div class="search_bar">
+    <form method="get">
+      <label>Keyword:
+        <input type="text" name="key" placeholder="Search by workout name…" value="{{ key }}" />
+      </label>
+      <label>From:
+        <input type="date" name="start" value="{{ start }}">
+      </label>
+      <label>To:
+        <input type="date" name="end" value="{{ end }}">
+      </label>
+      <button type="submit">Search</button>
+    </form>
+  </div>
+
+  <div class="runs_table">
+    <table>
+      <thead>
         <tr>
-          <td>{{ run.dt }}</td>
-          <td>{{ run.wt_name }}</td>
-          <td>{{ run.distance }}</td>
-          <td>{{ run.duration }}</td>
-          <td>{{ run.avg_power }}</td>
-          <td>{{ run.avg_hr }}</td>
-          <td>{{ run.wt_type }}</td>
-        </tr>
-      {% endfor %}
-        <tr>
-          <th>Runs</th>
-          <th>Distance</th>
+          <th>Date</th>
+          <th>Workout</th>
+          <th>Distance (km)</th>
           <th>Duration</th>
+          <th>Avg Power</th>
+          <th>Avg HR</th>
+          <th>Workout type</th>
         </tr>
+      </thead>
+      <tbody>
+        {% for run in runs %}
+          <tr>
+            <td>{{ run.datetime|date:"m-d-Y" }}</td>
+            <td>{{ run.workout.workout_name }}</td>
+            <td>{{ run.distance_m|floatformat:0 }}</td>
+            <td>{{ run.duration_sec }}</td>
+            <td>{{ run.avg_power }}</td>
+            <td>{{ run.avg_hr }}</td>
+            <td>{{ run.workout.workout_type.name }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="summary_table">
+    <table>
+      <thead>
+        <tr>
+          <th>Number<br>of Runs</th>
+          <th>Total<br>Distance</th>
+          <th>Total<br>Duration</th>
+        </tr>
+      </thead>
+      <tbody>
         <tr>
           <td>{{ summary.runs }}</td>
           <td>{{ summary.distance }}</td>
           <td>{{ summary.duration }}</td>
-      </tr>
-
-    </tbody>
-  </table>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
 {% endblock %}

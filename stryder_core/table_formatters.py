@@ -2,7 +2,7 @@ import pandas as pd
 from stryder_core import runtime_context
 from stryder_core.date_utilities import dt_to_string
 from stryder_core.runtime_context import get_tzinfo
-from stryder_core.utils_formatting import fmt_hms, fmt_distance_km_str, fmt_str_decimals, format_seconds
+from stryder_core.utils_formatting import fmt_hms, fmt_str_decimals, format_seconds
 
 
 def format_view_columns(rows, mode, metrics = None):
@@ -47,12 +47,25 @@ def format_view_columns(rows, mode, metrics = None):
 
 def weekly_table_fmt(weekly_raw:pd.DataFrame, metrics:dict) -> pd.DataFrame:
     """ Build a display-only weekly table using labels from metrics. Does NOT mutate the input df. """
+
     out = weekly_raw.copy()
+
+    # Ensure that columns returned as numeric
+    for col in ("distance_km", "duration_sec", "avg_power", "avg_hr", "runs"):
+        if col in out.columns:
+            out[col] = pd.to_numeric(out[col], errors="coerce")
+
+    ws = pd.to_datetime(out["week_start"], errors="coerce", utc=True)
+    we = pd.to_datetime(out["week_end"], errors="coerce", utc=True)
+
+    out["week_start"] = ws.dt.tz_convert(None)
+    out["week_end"] = we.dt.tz_convert(None)
 
     out["Week Start"] = out["week_start"].dt.strftime("%Y-%m-%d")
     out["Week End"] = out["week_end"].dt.strftime("%Y-%m-%d")
 
-    cols = []
+    cols = ["Week Start", "Week End"]
+
     # Runs
     if "runs" in out.columns and "Runs" not in out.columns:
         out["Runs"] = out["runs"]
@@ -60,26 +73,26 @@ def weekly_table_fmt(weekly_raw:pd.DataFrame, metrics:dict) -> pd.DataFrame:
         cols.append("Runs")
 
     # Distance
-    if "distance_km" in out:
+    if "distance_km" in out.columns:
         label = f'{metrics["distance"]["label"]} ({metrics["distance"]["unit"]})' if metrics["distance"].get("unit") else metrics["distance"]["label"]
         out[label] = out["distance_km"].round(2)
         cols.append(label)
 
     # Duration -> H:MM
-    if "duration_sec" in out:
+    if "duration_sec" in out.columns:
         label = metrics["duration"]["label"]
         out[label] = out["duration_sec"].apply(fmt_hms)
         cols.append(label)
 
     # Power
-    if "avg_power" in out:
+    if "avg_power" in out.columns:
         spec = metrics["power_avg"]
         lbl = f'{spec["label"]} ({spec["unit"]})' if spec.get("unit") else spec["label"]
         out[lbl] = out["avg_power"]
         cols.append(lbl)
 
     # HR
-    if "avg_hr" in out:
+    if "avg_hr" in out.columns:
         spec = metrics["HR"]
         lbl = f'{spec["label"]} ({spec["unit"]})' if spec.get("unit") else spec["label"]
         out[lbl] = out["avg_hr"]
