@@ -28,7 +28,7 @@ METRICS_SPEC : dict[str ,MetricInfo] = {
     "vo":        {"key": "vertical_oscillation","label": "V.Oscillation", "unit": "cm",     "formatter": "vo"},
     "distance":  {"key": "distance_m",          "label": "Distance",      "unit": "m",      "formatter": "distance"},
     "distance_km":{"key": "distance_km",        "label": "Distance",      "unit": "km",      "formatter": "distance"},
-    "HR":        {"key": "avg_hr",              "label": "Avg HR",        "unit": "bpm",    "formatter": "HR"}
+    "avg_hr":    {"key": "avg_hr",              "label": "Avg HR",        "unit": "bpm",    "formatter": "avg_hr"}
 
 }
 
@@ -73,7 +73,7 @@ def build_metrics(dt_mode: Literal["local", "utc"] = "local"):
            "dt":make_dt_value(dt_mode),
            "power":fmt_str_decimals, "duration": fmt_hms, "pace":fmt_pace_km,
            "ground":int, "lss":fmt_str_decimals, "cadence":int,
-           "vo":fmt_str_decimals, "distance":fmt_distance_km_str, "HR":int}
+           "vo":fmt_str_decimals, "distance":fmt_distance_km_str, "avg_hr":int}
     return {k: {**spec, "formatter": reg[spec["formatter"]]} for k, spec in METRICS_SPEC.items()}
 
 

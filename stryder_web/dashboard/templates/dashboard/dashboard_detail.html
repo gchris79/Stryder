@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard · Stryder Web{% endblock %}
+
+{% block content %}
+
+{% if summary %}
+  <ul>
+    <li>Duration: {{ summary.duration_sec }}</li>
+    <li>Distance (km): {{ summary.distance_km }}</li>
+    <li>Avg Power: {{ summary.avg_power }}</li>
+    <li>Avg Ground Time: {{ summary.avg_ground_time }}</li>
+    <li>Avg LSS: {{ summary.avg_lss }}</li>
+    <li>Avg Cadence: {{ summary.avg_cadence }}</li>
+    <li>Avg Vertical Osc.: {{ summary.avg_vo }}</li>
+  </ul>
+{% else %}
+  <p>No run found for ID {{ run_id }}.</p>
+{% endif %}
+
+{% endblock %}

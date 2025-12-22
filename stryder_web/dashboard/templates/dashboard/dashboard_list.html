@@ -20,36 +20,7 @@
     </form>
   </div>
 
-  <div class="runs_table">
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Workout</th>
-          <th>Distance (km)</th>
-          <th>Duration</th>
-          <th>Avg Power</th>
-          <th>Avg HR</th>
-          <th>Workout type</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for run in runs %}
-          <tr>
-            <td>{{ run.dt }}</td>
-            <td>{{ run.wt_name }}</td>
-            <td>{{ run.distance }}</td>
-            <td>{{ run.duration }}</td>
-            <td>{{ run.avg_power }}</td>
-            <td>{{ run.avg_hr }}</td>
-            <td>{{ run.wt_type }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <div class="summary_table">
+<div class="summary_table">
     <table>
       <thead>
         <tr>
@@ -67,5 +38,48 @@
       </tbody>
     </table>
   </div>
+
+  <div class="runs_table">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Name</th>
+          <th>Distance (km)</th>
+          <th>Duration</th>
+          <th>Avg Power</th>
+          <th>Avg HR</th>
+          <th>Workout type</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in page_obj %}
+          <tr>
+            <td>{{ run.dt }}</td>
+            <td>
+              <a href="{% url 'dashboard_detail' run_id=run.run_id %}">
+                {{ run.wt_name }}
+              </a>
+            </td>
+            <td>{{ run.distance }}</td>
+            <td>{{ run.duration }}</td>
+            <td>{{ run.avg_power }}</td>
+            <td>{{ run.avg_hr }}</td>
+            <td>{{ run.wt_type }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+<div class="paginator">
+  {% if page_obj.has_previous %}
+    <a href="?key={{ key }}&start={{ start }}&end={{ end }}&sort={{ sort }}&page={{ page_obj.previous_page_number }}">← Prev</a>
+  {% endif %}
+  <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+    <a href="?key={{ key }}&start={{ start }}&end={{ end }}&sort={{ sort }}&page={{ page_obj.next_page_number }}">Next →</a>
+  {% endif %}
+</div>
 
 {% endblock %}

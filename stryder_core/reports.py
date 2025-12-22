@@ -72,7 +72,7 @@ def weekly_report(
                   km=("km","sum"),
                   sec=("duration_sec","sum"),
                   pow=("avg_power","mean"),
-                  HR=("avg_hr","mean"))
+                  avg_hr=("avg_hr","mean"))
              .reset_index())
 
     agg["week_start"] = start_local + pd.to_timedelta(agg["week_idx"].astype(int) * 7, unit="D")
@@ -85,7 +85,7 @@ def weekly_report(
             "km": "distance_km",
             "sec": "duration_sec",
             "pow": "avg_power",
-            "HR": "avg_hr",
+            "avg_hr": "avg_hr",
         })
         .sort_values("week_start")
         [["week_start", "week_end", "runs", "distance_km", "duration_sec", "avg_power", "avg_hr"]]

@@ -56,7 +56,7 @@ def bootstrap_context_core(data: dict) -> dict[str, Path]:
     """
     resolved_paths = bootstrap_defaults_core(data)
 
-    tz_str = data.get("TIMEZONE")       # or whatever you used
+    tz_str = data.get("TIMEZONE")
     tz_str, tzinfo = core_resolve_timezone(tz_str)
 
     set_context(

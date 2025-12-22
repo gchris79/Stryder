@@ -16,7 +16,7 @@ def format_view_columns(rows, mode, metrics = None):
     for row in rows:
         # Header and data column order
         if mode == "for_views":
-            headers = get_keys(["dt", "wt_name", "distance", "duration", "power_avg", "HR", "wt_type"])
+            headers = get_keys(["dt", "wt_name", "distance", "duration", "power_avg", "avg_hr", "wt_type"])
             dt_obj = metrics["dt"]["formatter"](row["datetime"])
             display = [
                 dt_to_string(dt_obj, "ymd_hms", tz=tz),
@@ -93,7 +93,7 @@ def weekly_table_fmt(weekly_raw:pd.DataFrame, metrics:dict) -> pd.DataFrame:
 
     # HR
     if "avg_hr" in out.columns:
-        spec = metrics["HR"]
+        spec = metrics["avg_hr"]
         lbl = f'{spec["label"]} ({spec["unit"]})' if spec.get("unit") else spec["label"]
         out[lbl] = out["avg_hr"]
         cols.append(lbl)
@@ -110,6 +110,7 @@ def format_row_for_ui(row_dict, metrics) -> dict:
     tzinfo = runtime_context.get_tzinfo()
 
     return {
+        "run_id" : row_dict["run_id"],
         "dt": dt_to_string(dt_obj, "ymd", tz=tzinfo),
         "distance": metrics["distance"]["formatter"](row_dict["distance_m"]),
         "duration": metrics["duration"]["formatter"](row_dict["duration_sec"]),
@@ -120,7 +121,7 @@ def format_row_for_ui(row_dict, metrics) -> dict:
     }
 
 
-def format_summary_for_ui(summary_row: dict) -> dict:
+def format_runs_summary_for_ui(summary_row: dict) -> dict:
     """ Format dashboard summary dict row for UI printing """
     if summary_row is None:
         return None

@@ -1,15 +1,15 @@
 from datetime import date, timedelta
 from stryder_core.metrics import build_metrics
 from stryder_core.queries import fetch_page, views_query
-from stryder_core.reports import custom_dates_report
-from stryder_core.table_formatters import format_row_for_ui, format_summary_for_ui
+from stryder_core.reports import custom_dates_report, get_single_run_query, render_single_run_report
+from stryder_core.table_formatters import format_row_for_ui, format_runs_summary_for_ui
 
 
-def get_last_days_for_ui(conn, days: int | None = None,
-                         end_date: date | None = None,
-                         start_date: date | None = None,
-                         keyword: str | None = None,
-                         ) -> tuple:
+def get_x_days_for_ui(conn, days: int | None = None,
+                      end_date: date | None = None,
+                      start_date: date | None = None,
+                      keyword: str | None = None,
+                      ) -> tuple:
     """Get runs and dates for either:
        - last `days`, or
        - explicit [start_date, end_date] range.
@@ -55,7 +55,7 @@ def get_dashboard_summary(conn, tz_name,
     """Build ctx with 'runs' (formatted for UI) and 'summary' for dashboard."""
 
     # if days is given, ignore start/end; otherwise use explicit range
-    runs, end_date, start_date = get_last_days_for_ui(
+    runs, end_date, start_date = get_x_days_for_ui(
         conn,
         days=days,
         end_date=end_date,
@@ -84,10 +84,40 @@ def get_dashboard_summary(conn, tz_name,
             "avg_power": float(row["avg_power"]) if row["avg_power"] is not None else None,
             "avg_hr": float(row["avg_hr"]) if row["avg_hr"] is not None else None,
         }
-    formated_summary = format_summary_for_ui(summary)
+    formatted_summary = format_runs_summary_for_ui(summary)
 
     return {
         "runs": runs,
-        "summary": formated_summary,
+        "summary": formatted_summary,
     }
 
+
+def get_single_run_summary(conn, run_id, metrics) -> dict:
+    """ Build summary for single run. """
+
+    df_raw = get_single_run_query(conn, run_id, metrics)
+
+    if df_raw.empty:
+        return {
+            "run_id": run_id,
+            "summary": None,
+            "df": None,
+        }
+    else:
+        df_summary = render_single_run_report(df_raw)
+        row = df_summary.iloc[0]
+        summary = {
+            "duration_sec": row["Duration"],
+            "distance_km": row["Distance (km)"],
+            "avg_power": row["Avg Power"],
+            "avg_ground_time": row["Avg Ground Time"],
+            "avg_lss": row["Avg LSS"],
+            "avg_cadence": row["Avg Cadence"],
+            "avg_vo": row["Avg Vertical Osc."],
+        }
+
+    return {
+        "run_id": run_id,
+        "summary": summary,
+        "df": row,  # optional if you want charts/table later
+    }
