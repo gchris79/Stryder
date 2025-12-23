@@ -1,8 +1,9 @@
 from datetime import date, timedelta
 from stryder_core.metrics import build_metrics
 from stryder_core.queries import fetch_page, views_query
-from stryder_core.reports import custom_dates_report, get_single_run_query, render_single_run_report
+from stryder_core.reports import custom_dates_report, get_single_run_query, compute_single_run_summary
 from stryder_core.table_formatters import format_row_for_ui, format_runs_summary_for_ui
+from stryder_core.utils_formatting import fmt_hms
 
 
 def get_x_days_for_ui(conn, days: int | None = None,
@@ -98,26 +99,28 @@ def get_single_run_summary(conn, run_id, metrics) -> dict:
     df_raw = get_single_run_query(conn, run_id, metrics)
 
     if df_raw.empty:
-        return {
-            "run_id": run_id,
-            "summary": None,
-            "df": None,
-        }
-    else:
-        df_summary = render_single_run_report(df_raw)
-        row = df_summary.iloc[0]
-        summary = {
-            "duration_sec": row["Duration"],
-            "distance_km": row["Distance (km)"],
-            "avg_power": row["Avg Power"],
-            "avg_ground_time": row["Avg Ground Time"],
-            "avg_lss": row["Avg LSS"],
-            "avg_cadence": row["Avg Cadence"],
-            "avg_vo": row["Avg Vertical Osc."],
-        }
+        return {"run_id": run_id, "summary": None, "wt_name": None, "df": None}
+
+    s = compute_single_run_summary(df_raw)
+    wt_name = df_raw.iloc[0].get("wt_name") if "wt_name" in df_raw.columns else None
+    dt = df_raw.iloc[0].get("dt") if "dt" in df_raw.columns else None
+
+    summary = {
+        "run_id": s["run_id"],
+        "duration_sec": s["duration_sec"],
+        "duration_hms": fmt_hms(s["duration_sec"]),
+        "distance_km": round(s["distance_km"], 2),
+        "avg_power": round(s["avg_power"], 1),
+        "avg_ground_time": round(s["ground_time"], 1),
+        "avg_lss": round(s["stiffness"], 1),
+        "avg_cadence": round(s["cadence"], 1),
+        "avg_vo": round(s["vertical_oscillation"], 2),
+    }
 
     return {
         "run_id": run_id,
         "summary": summary,
-        "df": row,  # optional if you want charts/table later
+        "dt": dt,
+        "wt_name": wt_name,
+        "df": df_raw,  # optional if you want charts/table later
     }

@@ -6,7 +6,9 @@ from stryder_cli.cli_utils import MenuItem, prompt_menu, print_table
 from stryder_core.metrics import axis_label
 from stryder_core.plot_core import plot_distance_over_time, plot_duration_over_time, plot_power_over_time_batch, \
     plot_hr_over_time, plot_single_series, save_plot
+from stryder_core.reports import compute_single_run_summary
 from stryder_core.table_formatters import weekly_table_fmt
+from stryder_core.utils_formatting import fmt_hms
 
 
 def resolve_plots_dir() -> Path:
@@ -67,8 +69,6 @@ def what_to_print(
     metrics: dict = None
 ) -> Path | None:  # return saved path if you export, else None
     """ The orchestrator that sets what will be printed. """
-
-    from stryder_core.reports import render_single_run_report
 
     if display == "table":
         if  report == "single":
@@ -239,3 +239,20 @@ def display_menu(label, df_raw, df_type, metrics):
 
     elif choice1 == "q":
         exit(0)
+
+
+def render_single_run_report(df:pd.DataFrame) -> pd.DataFrame:
+    """ Takes a df, changes the field names to pretty name for displaying """
+    table = compute_single_run_summary(df)
+    # Building the report df
+    row = {
+        "Run ID": table["run_id"],
+        "Duration": fmt_hms(table["duration_sec"]),
+        "Distance (km)": round(table["distance_km"], 2),
+        "Avg Power": round(table["avg_power"], 1),
+        "Avg Ground Time": round(table["ground_time"], 1),
+        "Avg LSS": round(table["stiffness"], 1),
+        "Avg Cadence": round(table["cadence"], 1),
+        "Avg Vertical Osc.": round(table["vertical_oscillation"], 2),
+    }
+    return pd.DataFrame([row])

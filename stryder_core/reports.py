@@ -4,7 +4,6 @@ import pandas as pd
 from pandas.core.interchange.dataframe_protocol import DataFrame
 from stryder_core.date_utilities import as_local_date
 from stryder_core.queries import build_window_query_and_params
-from stryder_core.utils_formatting import fmt_hms
 from stryder_core.metrics import align_df_to_metric_keys
 
 SINGLE_RUN_SAMPLE_KEYS = {"power_sec", "ground", "lss", "cadence", "vo"}
@@ -264,9 +263,11 @@ def get_single_run_query(conn, run_id: int, metrics: dict):
             m.ground_time,
             m.stiffness,
             m.cadence,
-            m.vertical_oscillation
+            m.vertical_oscillation,
+            w.workout_name      AS wt_name
         FROM metrics m 
         JOIN runs r ON m.run_id = r.id
+        JOIN workouts w ON r.workout_id = w.id
         WHERE m.run_id = ? 
         ORDER BY m.datetime ASC
     """
@@ -306,24 +307,29 @@ def first_col(df: pd.DataFrame, *candidates: str, default=None):
     raise KeyError(f"None of {candidates} found in DF columns: {list(df.columns)}")
 
 
-def render_single_run_report(df:pd.DataFrame) -> pd.DataFrame:
+def compute_single_run_summary(df:pd.DataFrame) -> dict:
     """ Takes a df, gets run ID, calculates duration in seconds and distance in meters,
-     then builds the single run report and then returns the df """
+     then builds the single run report and then returns a dict with canonical metrics """
     run_id = int(first_col(df, "run_id", "id").iloc[0])
     # Calculate duration from datetime
     duration_sec = int((df["dt"].max() - df["dt"].min()).total_seconds())
     # Calculate total distance and format in km
     distance_m = float(first_col(df, "distance_m", "stryd_distance", default=0).max() or 0.0)
+    avg_power = float(first_col(df, "power_sec", "power").mean())
+    avg_ground_time = float(first_col(df, "ground").mean())
+    avg_lss = float(first_col(df, "lss", "stiffness").mean())
+    avg_cadence = float(first_col(df, "cadence").mean())
+    avg_vo = float(first_col(df, "vo", "vertical_oscillation").mean())
 
-    # Building the report df
-    row = {
-        "Run ID": run_id,
-        "Duration": fmt_hms(duration_sec),
-        "Distance (km)": round(distance_m / 1000.0, 2),
-        "Avg Power": round(first_col(df, "power_sec", "power").mean(), 1),
-        "Avg Ground Time": round(first_col(df, "ground").mean(), 1),
-        "Avg LSS": round(first_col(df, "lss", "stiffness").mean(), 1),
-        "Avg Cadence": round(first_col(df, "cadence").mean(), 1),
-        "Avg Vertical Osc.": round(first_col(df, "vo", "vertical_oscillation").mean(), 2),
+    return {
+        "run_id": run_id,
+        "duration_sec": duration_sec,
+        "distance_km": distance_m / 1000.0,
+        "avg_power": avg_power,
+        "ground_time": avg_ground_time,
+        "stiffness": avg_lss,
+        "cadence": avg_cadence,
+        "vertical_oscillation": avg_vo,
     }
-    return pd.DataFrame([row])
+
+

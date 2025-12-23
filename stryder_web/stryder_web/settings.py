@@ -15,12 +15,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# if you have CONFIG_PATH already in core, you can hardcode or reuse it
-CONFIG_PATH = "/media/gchr/Data/PyCharm Projects/Stryder/stryder_core/last_used_paths.json" # adjust to your real path
-
-with open(CONFIG_PATH) as f:
-    core_config = json.load(f)
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -31,7 +25,6 @@ SECRET_KEY = 'django-insecure-mfc%fbx@op&b79&yxwpmi_u)jzgb0)lq6o&fm%h%02#)35+p@s
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -87,6 +80,15 @@ DATABASES = {
     }
 }
 
+# take CONFIG_PATH already in core
+CONFIG_PATH = "/media/gchr/Data/PyCharm Projects/Stryder/stryder_core/last_used_paths.json"
+
+with open(CONFIG_PATH) as f:
+    core_config = json.load(f)
+
+STRYDER_CORE_CONFIG = core_config
+STRYDER_DB_PATH = DATABASES["default"]["NAME"]
+STRYDER_TIMEZONE = core_config.get("TIMEZONE")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

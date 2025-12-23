@@ -1,23 +1,18 @@
-from datetime import timedelta, date
+from datetime import timedelta
 from django.core.paginator import Paginator
 from django.shortcuts import render
 from django.utils.dateparse import parse_date
-
-from stryder_cli.cli_main import bootstrap_defaults_interactive
-from stryder_core.bootstrap import bootstrap_context_core
-from stryder_core.config import DB_PATH
-from stryder_core.db_schema import connect_db
-from stryder_core.metrics import build_metrics
-from stryder_core.path_memory import load_json, CONFIG_PATH
 from stryder_core.usecases import get_dashboard_summary, get_single_run_summary
-
+from django.conf import settings
+from .core_services import get_bootstrap, get_metrics, get_conn
+from django.utils import timezone
 
 # Create your views here.
 def dashboard_list(request):
-    data = load_json(CONFIG_PATH)
-    resolved = bootstrap_context_core(data)
-    tz_str = data["TIMEZONE"]
-    conn = connect_db(DB_PATH)
+    get_bootstrap()
+    conn = get_conn()
+    tz_str = settings.STRYDER_CORE_CONFIG.get("TIMEZONE")
+
     default_days = 45
 
     # 1) optional search by workout name/type
@@ -33,7 +28,8 @@ def dashboard_list(request):
 
     # 2c) if user didn't give any dates use default last x days
     if not start_dt and not end_dt:
-        today = date.today()
+        #today = date.today()
+        today = timezone.localdate()
         end_dt = today
         start_dt = today - timedelta(days=default_days - 1)
         # pre-fill the form with these defaults
@@ -66,9 +62,10 @@ def dashboard_list(request):
 
 
 def dashboard_detail(request, run_id):
-    conn = connect_db(DB_PATH)
-    paths = bootstrap_defaults_interactive()            # Get saved tz, paths, etc.
-    metrics = build_metrics("local")
+    get_bootstrap()          # ensures runtime_context is set once
+    metrics = get_metrics()  # cached
+
+    conn = get_conn()
 
     try:
         ctx = get_single_run_summary(conn, run_id, metrics)

@@ -36,3 +36,32 @@ table {
     text-align: center;
     justify-items: center;
 }
+
+a.btn {
+    display: inline-flex;
+    background: transparent;
+    color: inherit;
+    border: 1px solid transparent;
+    gap: 0.5em;
+    padding: 0.7em;
+    border-radius: 99px;
+    text-decoration: none;
+    border: 1px solid transparent;
+    line-height: 1.2;
+    transition: background-color .25s ease, color .25s ease, transform .2s ease, border-color .25s ease;
+}
+
+a.btn-primary {
+    color: white;
+    background-color: black;
+    margin: 2rem auto;
+}
+
+.btn-primary:hover {
+  background: gray;
+  transform: translateY(-2px);
+}
+
+.btn-contain {
+    text-align: center;
+}
