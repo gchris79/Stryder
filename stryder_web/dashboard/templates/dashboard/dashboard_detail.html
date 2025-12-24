@@ -4,35 +4,55 @@
 
 {% block content %}
 <h2>{{  dt|date:"Y-m-d H:i" }} - {{ wt_name }}</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Duration<br></th>
-        <th>Distance<br></th>
-        <th>Avg Power<br></th>
-        <th>Avg Ground Time</th>
-        <th>Avg LSS</th>
-        <th>Avg Cadence<br></th>
-        <th>Avg Vertical Osc</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if summary %}
+  <div>
+    <table>
+      <thead>
         <tr>
-          <td>{{ summary.duration_hms }}</td>
-          <td>{{ summary.distance_km }}</td>
-          <td>{{ summary.avg_power }}</td>
-          <td>{{ summary.avg_ground_time }}</td>
-          <td>{{ summary.avg_lss }}</td>
-          <td>{{ summary.avg_cadence }}</td>
-          <td>{{ summary.avg_vo }}</td>
+          <th>Duration<br></th>
+          <th>Distance<br></th>
+          <th>Avg Power<br></th>
+          <th>Avg Ground Time</th>
+          <th>Avg LSS</th>
+          <th>Avg Cadence<br></th>
+          <th>Avg Vertical Osc</th>
         </tr>
-      {% else %}
-        <tr>No run found for ID {{ run_id }}.</tr>
-      {% endif %}
-    </tbody>
-  </table>
-  <div class="btn-contain">
+      </thead>
+      <tbody>
+        {% if summary %}
+          <tr>
+            <td>{{ summary.duration_hms }}</td>
+            <td>{{ summary.distance_km }}</td>
+            <td>{{ summary.avg_power }}</td>
+            <td>{{ summary.avg_ground_time }}</td>
+            <td>{{ summary.avg_lss }}</td>
+            <td>{{ summary.avg_cadence }}</td>
+            <td>{{ summary.avg_vo }}</td>
+          </tr>
+        {% else %}
+          <tr>No run found for ID {{ run_id }}.</tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="y-radio-wrapper">
+    <form method="get" class="y-axis-form">
+      {% for opt in y_axis_options %}
+        <label for="y_{{ opt.key }}" class="y-axis-option">
+          <input type="radio" id="y_{{ opt.key }}" name="y" value="{{ opt.key }}"
+                 {% if opt.key == current_y %}checked{% endif %} onchange="this.form.submit()">
+          {{ opt.label|safe }}
+        </label>
+      {% endfor %}
+    </form>
+  </div>
+
+  <div class="graph_wrapper">
+    <h3>{{ graph_title }}</h3>
+    <img src="{% url 'run_plot' run_id=run_id %}?y={{ current_y }}" alt="Run plot">
+  </div>
+
+  <div class="btn-wrapper">
     <a href="/" class="btn btn-primary">← Back to runs list</a>
   </div>
 

@@ -48,6 +48,7 @@ def plot_single_series(
     y_formatter: FuncFormatter | Callable | None = None,
     y_locator: Locator | None = None,
     ax=None,
+    y_label=None
 ):
     """ Graph plotter for the single run report """
     # ---- Backward-compatibility aliases ----
@@ -127,13 +128,15 @@ def plot_single_series(
 
     # ---- Labels ----
     x_labels = {
-        "elapsed_sec": "Duration (h:m:s)",
+        "elapsed_sec": "Duration (h:m)",
         "distance_km": "Distance (km)",
         "dt": "Time",
     }
     ax.set_xlabel(x_labels.get(x_col, x_col))
+    # top title (graph title)
     ax.set_title(label or "")
-    ax.set_ylabel(label or y_col)   # use the pretty label
+    # y-axis label (side title)
+    ax.set_ylabel(y_label or label)
 
     if label:
         ax.legend()

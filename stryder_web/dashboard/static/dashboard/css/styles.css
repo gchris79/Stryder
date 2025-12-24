@@ -32,10 +32,15 @@ table {
     width: auto;
 }
 
+.y-radio-wrapper {
+    display:flex;
+    justify-content: center;
+}
+
 .paginator {
     text-align: center;
-    justify-items: center;
 }
+
 
 a.btn {
     display: inline-flex;
@@ -43,7 +48,7 @@ a.btn {
     color: inherit;
     border: 1px solid transparent;
     gap: 0.5em;
-    padding: 0.7em;
+    padding: 0.8em;
     border-radius: 99px;
     text-decoration: none;
     border: 1px solid transparent;
@@ -62,6 +67,17 @@ a.btn-primary {
   transform: translateY(-2px);
 }
 
-.btn-contain {
+.btn-wrapper {
     text-align: center;
+}
+
+.graph_wrapper {
+    text-align:center;
+    justify-content:center;
+    width: 100%;
+}
+
+.graph_img {
+    max-width: 100%;
+    height: auto;
 }

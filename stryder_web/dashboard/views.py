@@ -1,7 +1,12 @@
 from datetime import timedelta
+from io import BytesIO
 from django.core.paginator import Paginator
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils.dateparse import parse_date
+from matplotlib import pyplot as plt
+from stryder_core.plot_core import plot_single_series
+from stryder_core.reports import get_single_run_query
 from stryder_core.usecases import get_dashboard_summary, get_single_run_summary
 from django.conf import settings
 from .core_services import get_bootstrap, get_metrics, get_conn
@@ -65,6 +70,31 @@ def dashboard_detail(request, run_id):
     get_bootstrap()          # ensures runtime_context is set once
     metrics = get_metrics()  # cached
 
+    # Build y-axis options from canonical metrics
+    y_axis_options = []
+    for key, meta in metrics.items():
+        if meta.get("plottable_single"):
+            y_axis_options.append({
+                "key": key,  # canonical key, e.g. "power"
+                "label": meta["label"],  # what user sees on radio
+            })
+
+    # Determine currently selected y-axis from GET (default to first or "power")
+    selected_y = request.GET.get("y")
+    valid_keys = {opt["key"] for opt in y_axis_options}
+
+    if selected_y not in valid_keys:
+        # Fallback: choose "power" if available, or the first option
+        if "power_sec" in valid_keys:
+            selected_y = "power_sec"
+        else:
+            selected_y = next(iter(valid_keys))  # first option
+
+    # Build the titles for the graph
+    y_label = metrics[selected_y]["label"]
+    y_unit = metrics[selected_y]["unit"]
+    graph_title = f"{y_label} ({y_unit})"
+
     conn = get_conn()
 
     try:
@@ -72,4 +102,48 @@ def dashboard_detail(request, run_id):
     finally:
         conn.close()
 
-    return render(request, "dashboard/dashboard_detail.html", ctx)
+    context = {
+        "run_id": ctx["run_id"],
+        "summary":ctx["summary"],
+        "dt": ctx["dt"],
+        "wt_name": ctx["wt_name"],
+        "y_axis_options": y_axis_options,
+        "current_y": selected_y,
+        "graph_title": graph_title,
+    }
+
+    return render(request, "dashboard/dashboard_detail.html", context)
+
+
+def run_plot(request, run_id):
+    get_bootstrap()
+    metrics = get_metrics()
+
+    conn = get_conn()
+    try:
+        df_raw = get_single_run_query(conn, run_id, metrics)
+    finally:
+        conn.close()
+
+    if df_raw.empty:
+        return HttpResponse(status=404)
+
+    selected_y = request.GET.get("y")
+    y_label = metrics[selected_y]["label"]
+
+    fig, ax = plt.subplots()
+
+    plot_single_series(
+        df_raw,
+        x_col="elapsed_sec",
+        y_col=selected_y,
+        ax=ax,
+        y_label=y_label,
+    )
+
+    buf = BytesIO()
+    fig.savefig(buf, format="png", bbox_inches="tight", pad_inches=0.1)
+    plt.close(fig)
+    buf.seek(0)
+
+    return HttpResponse(buf.getvalue(), content_type="image/png")

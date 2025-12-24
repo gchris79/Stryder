@@ -20,7 +20,7 @@
     </form>
   </div>
 
-<div class="summary_table">
+  <div class="summary_table">
     <table>
       <thead>
         <tr>
@@ -72,14 +72,14 @@
     </table>
   </div>
 
-<div class="paginator">
-  {% if page_obj.has_previous %}
-    <a href="?key={{ key }}&start={{ start }}&end={{ end }}&sort={{ sort }}&page={{ page_obj.previous_page_number }}">← Prev</a>
-  {% endif %}
-  <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-  {% if page_obj.has_next %}
-    <a href="?key={{ key }}&start={{ start }}&end={{ end }}&sort={{ sort }}&page={{ page_obj.next_page_number }}">Next →</a>
-  {% endif %}
-</div>
+  <div class="paginator">
+    {% if page_obj.has_previous %}
+      <a href="?key={{ key }}&start={{ start }}&end={{ end }}&sort={{ sort }}&page={{ page_obj.previous_page_number }}">← Prev</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?key={{ key }}&start={{ start }}&end={{ end }}&sort={{ sort }}&page={{ page_obj.next_page_number }}">Next →</a>
+    {% endif %}
+  </div>
 
 {% endblock %}
