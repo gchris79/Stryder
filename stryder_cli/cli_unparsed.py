@@ -127,6 +127,10 @@ def interactive_run_insert_cli(stryd_file, garmin_file, conn, timezone_str=None)
             print(f"⚠️ Run already exists in DB: {file_name}")
             return False
 
+        elif result["status"] == "zero_data":
+            print(f"⚠️ Stryd data is incomplete (zero distance/speed). Run skipped.")
+            return False
+
         else:
             logging.error(f"Unexpected status in run insert: {result['status']}")
             return None

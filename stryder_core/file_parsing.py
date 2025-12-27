@@ -30,7 +30,7 @@ def is_stryd_all_zero(df: pd.DataFrame) -> bool:
 
 
 def edit_stryd_csv(df, timezone_str: str | None = None):
-    """ Takes stryd.csv columns,normalises them, turns time to local, gets distance from speed, returns df """
+    """ Takes stryd.csv columns,normalizes them, turns time to local, gets distance from speed, returns df """
 
     # Normalize stryd.csv headers → canonical keys
     df = align_df_to_metric_keys(df, STRYD_PARSE_SPEC, keys=PARSE_STRYD_CSV_KEYS)
@@ -61,7 +61,7 @@ def edit_stryd_csv(df, timezone_str: str | None = None):
 
         # sanity check for all-zero speed
         if (spd.abs() < 1e-12).all():
-            logging.warning("⚠️  Stryd CSV appears to have zero speed everywhere.")
+            logging.warning("⚠️  Stryd CSV: all str_speed values are zero (parser-level check).")
     else:
         # keep columns consistent even if speed missing
         df["dist_delta"] = 0.0

@@ -11,6 +11,12 @@ from stryder_core.utils_formatting import fmt_hm, fmt_pace_no_unit
 from stryder_core.utils import calc_df_to_pace
 
 
+X_AXIS_SPEC = {
+    "elapsed_sec": {"label": "Duration", "unit": "(h:m)"},
+    "distance_km": {"label": "Distance", "unit": "(km)"}
+}
+
+
 def plot_distance_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
     """ Wrapper for plotting weekly distance over time """
     return plot_weekly_series(df, y_col=y_col, label=label)
@@ -48,7 +54,8 @@ def plot_single_series(
     y_formatter: FuncFormatter | Callable | None = None,
     y_locator: Locator | None = None,
     ax=None,
-    y_label=None
+    y_label=None,
+    x_label=None
 ):
     """ Graph plotter for the single run report """
     # ---- Backward-compatibility aliases ----
@@ -127,16 +134,15 @@ def plot_single_series(
         ax.yaxis.set_major_locator(y_locator)
 
     # ---- Labels ----
-    x_labels = {
-        "elapsed_sec": "Duration (h:m)",
-        "distance_km": "Distance (km)",
-        "dt": "Time",
-    }
-    ax.set_xlabel(x_labels.get(x_col, x_col))
     # top title (graph title)
     ax.set_title(label or "")
     # y-axis label (side title)
     ax.set_ylabel(y_label or label)
+    # x-axis label (bottom title)
+    if x_label is not None:
+        ax.set_xlabel(x_label)
+    else:
+        ax.set_xlabel(X_AXIS_SPEC.get(x_col, {}).get("label", x_col))
 
     if label:
         ax.legend()

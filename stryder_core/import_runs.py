@@ -137,7 +137,7 @@ def evaluate_run_from_dfs(stryd_raw_df, garmin_raw_df, file_name, conn, timezone
             return result
 
     except ZeroStrydDataError as e:
-        logging.info(f"⏭️ ZeroStrydDataError, skipped: {file_name} — {e}")
+        logging.info(f"⏭️ Run skipped due to zero Stryd speed/distance: {file_name} — {e}")
         result["status"] = "zero_data"
         return result
 

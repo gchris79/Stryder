@@ -14,21 +14,21 @@ class MetricInfo(TypedDict, total=False):
 
 # This is the dictionary from which the metrics dict will be built, this is used after the db is created for reports, views etc. #
 METRICS_SPEC : dict[str ,MetricInfo] = {
-    "id":        {"key": "run_id",              "label": "Run ID",                          "formatter": "id"},
-    "wt_name":   {"key": "wt_name",             "label": "Workout Name",                    "formatter": "wt_name"},
-    "wt_type":   {"key": "wt_type",             "label": "Workout Type",                    "formatter": "wt_type"},
-    "dt":        {"key": "datetime",            "label": "Datetime",                        "formatter" : "dt"},
-    "power_sec": {"key": "power",               "label": "Power",         "unit": "W/kg",   "formatter": "power",   "plottable_single": True},
-    "power_avg": {"key": "avg_power",           "label": "Avg Power",     "unit": "W/kg",   "formatter": "power"},
-    "duration":  {"key": "duration_sec",        "label": "Duration",      "unit": "h:m",    "formatter": "duration"},
-    "pace":      {"key": "pace",                "label": "Pace",          "unit": "min/km", "formatter": "pace"},
-    "ground":    {"key": "ground_time",         "label": "Ground Time",   "unit": "ms",     "formatter": "ground",  "plottable_single": True},
-    "lss":       {"key": "stiffness",           "label": "LSS",           "unit": "kN/m",   "formatter": "lss",     "plottable_single": True},
-    "cadence":   {"key": "cadence",             "label": "Cadence",       "unit": "spm",    "formatter": "cadence", "plottable_single": True},
-    "vo":        {"key": "vertical_oscillation","label": "Vert. Oscillation", "unit": "cm",     "formatter": "vo",      "plottable_single": True},
-    "distance":  {"key": "distance_m",          "label": "Distance",      "unit": "m",      "formatter": "distance"},
-    "distance_km":{"key": "distance_km",        "label": "Distance",      "unit": "km",      "formatter": "distance"},
-    "avg_hr":    {"key": "avg_hr",              "label": "Avg HR",        "unit": "bpm",    "formatter": "avg_hr"}
+    "id":           {"key": "run_id",               "label": "Run ID",                                  "formatter": "id"},
+    "wt_name":      {"key": "wt_name",              "label": "Workout Name",                            "formatter": "wt_name"},
+    "wt_type":      {"key": "wt_type",              "label": "Workout Type",                            "formatter": "wt_type"},
+    "dt":           {"key": "datetime",             "label": "Datetime",                                "formatter" : "dt"},
+    "power_sec":    {"key": "power",                "label": "Power",               "unit": "W/kg",     "formatter": "power",       "plottable_single": True},
+    "power_avg":    {"key": "avg_power",            "label": "Avg Power",           "unit": "W/kg",     "formatter": "power"},
+    "duration":     {"key": "duration_sec",         "label": "Duration",            "unit": "h:m",      "formatter": "duration"},
+    "pace":         {"key": "pace",                 "label": "Pace",                "unit": "min/km",   "formatter": "pace"},
+    "ground":       {"key": "ground_time",          "label": "Ground Time",         "unit": "ms",       "formatter": "ground",      "plottable_single": True},
+    "lss":          {"key": "stiffness",            "label": "LSS",                 "unit": "kN/m",     "formatter": "lss",         "plottable_single": True},
+    "cadence":      {"key": "cadence",              "label": "Cadence",             "unit": "spm",      "formatter": "cadence",     "plottable_single": True},
+    "vo":           {"key": "vertical_oscillation", "label": "Vert. Oscillation",   "unit": "cm",       "formatter": "vo",          "plottable_single": True},
+    "distance":     {"key": "distance_m",           "label": "Distance",            "unit": "m",        "formatter": "distance"},
+    "distance_km":  {"key": "distance_km",          "label": "Distance",            "unit": "km",       "formatter": "distance"},
+    "avg_hr":       {"key": "avg_hr",               "label": "Avg HR",              "unit": "bpm",      "formatter": "avg_hr"}
 
 }
 
@@ -59,7 +59,6 @@ GARMIN_PARSE_SPEC = {
     "date":               {"aliases": ["Date"]},
     "wt_name":            {"aliases": ["Workout Name", "Title"]},
     "avg_hr":             {"aliases": ["Avg HR", "Average HR", "Average Heart Rate", "Avg. HR", "Avg HR (bpm)"]},
-
 }
 
 

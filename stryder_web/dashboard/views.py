@@ -4,13 +4,16 @@ from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils.dateparse import parse_date
-from matplotlib import pyplot as plt
-from stryder_core.plot_core import plot_single_series
+from stryder_core.plot_core import plot_single_series, X_AXIS_SPEC
 from stryder_core.reports import get_single_run_query
 from stryder_core.usecases import get_dashboard_summary, get_single_run_summary
 from django.conf import settings
 from .core_services import get_bootstrap, get_metrics, get_conn
 from django.utils import timezone
+import matplotlib
+matplotlib.use("Agg")
+from matplotlib import pyplot as plt
+
 
 # Create your views here.
 def dashboard_list(request):
@@ -80,20 +83,38 @@ def dashboard_detail(request, run_id):
             })
 
     # Determine currently selected y-axis from GET (default to first or "power")
-    selected_y = request.GET.get("y")
-    valid_keys = {opt["key"] for opt in y_axis_options}
+    selected_y = request.GET.get("y", "power")
+    valid_keys_y = {opt["key"] for opt in y_axis_options}
 
-    if selected_y not in valid_keys:
+    selected_x = request.GET.get("x", "elapsed_sec")
+    valid_keys_x = set(X_AXIS_SPEC.keys())
+    x_axis_options = [
+        {"key": k, **meta}
+        for k, meta in X_AXIS_SPEC.items()
+    ]
+
+    if selected_y not in valid_keys_y:
         # Fallback: choose "power" if available, or the first option
-        if "power_sec" in valid_keys:
+        if "power_sec" in valid_keys_y:
             selected_y = "power_sec"
         else:
-            selected_y = next(iter(valid_keys))  # first option
+            selected_y = next(iter(valid_keys_y))  # first option
+
+    if selected_x not in valid_keys_x:
+        # Fallback: choose "power" if available, or the first option
+        if "elapsed_sec" in valid_keys_x:
+            selected_x = "elapsed_sec"
+        else:
+            selected_x = next(iter(valid_keys_x))  # first option
 
     # Build the titles for the graph
     y_label = metrics[selected_y]["label"]
     y_unit = metrics[selected_y]["unit"]
-    graph_title = f"{y_label} ({y_unit})"
+
+    x_label = X_AXIS_SPEC[selected_x]["label"]
+    x_unit = X_AXIS_SPEC[selected_x]["unit"]
+
+    graph_title = f"{y_label} ({y_unit}) over {x_label} {x_unit}"
 
     conn = get_conn()
 
@@ -109,6 +130,8 @@ def dashboard_detail(request, run_id):
         "wt_name": ctx["wt_name"],
         "y_axis_options": y_axis_options,
         "current_y": selected_y,
+        "x_axis_options": x_axis_options,
+        "current_x": selected_x,
         "graph_title": graph_title,
     }
 
@@ -128,17 +151,21 @@ def run_plot(request, run_id):
     if df_raw.empty:
         return HttpResponse(status=404)
 
-    selected_y = request.GET.get("y")
+    selected_y = request.GET.get("y", "power")
     y_label = metrics[selected_y]["label"]
+
+    selected_x = request.GET.get("x", "elapsed_sec")
+    x_label = X_AXIS_SPEC[selected_x]["label"]
 
     fig, ax = plt.subplots()
 
     plot_single_series(
         df_raw,
-        x_col="elapsed_sec",
+        x_col=selected_x,
         y_col=selected_y,
         ax=ax,
         y_label=y_label,
+        x_label=x_label
     )
 
     buf = BytesIO()
