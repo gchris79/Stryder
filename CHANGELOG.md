@@ -3,6 +3,28 @@ All notable changes to **Stryder** will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),  
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+---
+## [1.7.0] - 2025-12-27
+### 🌐 Stryder Web (Django) – Initial Viewer Release
+
+### Major Changes
+- Introduced **Stryder Web**, a Django-based local web viewer built on top of Stryder Core.
+- Established a multi-interface architecture: Core logic shared across CLI and Web.
+- Web UI operates as a read-only analytics layer on the same database used by the CLI.
+
+### Web Features
+- Single run report view with interactive graph.
+- Custom date range reports for aggregated analysis.
+- User-selectable X/Y axes for graphs.
+- Improved layout and styling to present reports as full-page views.
+
+### CLI Improvements
+- Fixed an issue where unparsed runs were not correctly skipped during processing.
+- Verified continued stability and compatibility of existing CLI workflows.
+
+### Notes
+- Stryder Web complements the CLI and does not replace it.
+- Data import and parsing remain CLI-driven.
 
 ---
 ## [1.6.0] - 2025-11-27

@@ -126,9 +126,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
+# STATICFILES_DIRS = []   # use this line if I need CSS file for all the apps in stryder_web
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
