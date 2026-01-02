@@ -5,8 +5,10 @@ from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, wipe_all_data
 from stryder_core.metrics import build_metrics
 from stryder_core.path_memory import load_json, CONFIG_PATH
+from stryder_tui.screens.choose_file_prompt import PathPicker
 from stryder_tui.screens.confirm_dialog import ConfirmDialog
 from stryder_tui.screens.menu_base import MenuBase
+from stryder_tui.screens.tz_prompt import TzPrompt
 
 
 class StryderTui(App):
@@ -33,6 +35,48 @@ class StryderTui(App):
         ]
         self.push_screen(MenuBase("Main Menu", items))
 
+    # Import run option, tz dialog first
+    def action_add_run(self):
+        self.push_screen(TzPrompt(), callback=self._handle_import_tz_response)
+
+    # If tz chosen, move to Stryd file/dir dialog
+    def _handle_import_tz_response(self, tz:str) -> None:
+        if tz is None:
+            return
+        self.import_tz = tz     # store tz for later
+        self.push_screen(
+            PathPicker(question="Choose Stryd directory for batch import or single file for single run import",
+                       mode="file_dir"
+            ),
+            callback=self._handle_import_stryd_response,
+        )
+     # If Stryd dir/file chosen, move to Garmin file choice
+    def _handle_import_stryd_response(self, stryd_path:str| None) -> None:
+        if stryd_path is None:
+            self.push_screen(TzPrompt(), callback=self._handle_import_tz_response)
+            return
+        self.stryd_path = stryd_path
+        self.push_screen(
+            PathPicker(question="Choose Garmin file to match workout name with Stryd runs", mode="file"),
+            callback=self._handle_import_garmin_response,
+        )
+    # If Garmin file chosen, move use core for imports and then return to main menu
+    def _handle_import_garmin_response(self, garmin_file:str| None) -> None:
+        if garmin_file is None:
+            self.push_screen(
+                PathPicker(question="Choose Stryd directory for batch import or single file for single run import",
+                           mode="file_dir"),
+                callback=self._handle_import_stryd_response,
+                )
+            return
+        self.garmin_file = garmin_file
+        self.push_screen(
+            PathPicker(question="Choose Garmin file to match workout name with Stryd runs",
+                       mode="file"),
+            callback=self.core_function_placeholder,
+        )
+
+    # Reset Database option
     def action_reset_db(self):
         self.push_screen(
             ConfirmDialog("Are you sure you want to reset the database?"),
@@ -43,6 +87,8 @@ class StryderTui(App):
         if confirmed:
             wipe_all_data(self.conn)
 
+
+    # Quit option
     def action_quit(self):
         self.exit()
 

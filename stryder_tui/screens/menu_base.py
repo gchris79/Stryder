@@ -1,8 +1,8 @@
 from typing import Iterable
+from textual import on
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Header, ListView, Footer, Label, ListItem
-
 from stryder_cli.cli_utils import MenuItem
 
 
@@ -19,16 +19,22 @@ class MenuBase(Screen):
         yield Header()
         with ListView():
             for item in self.items:
-               yield ListItem(Label(f"[{item.key}] {item.label}"))
+                list_item = ListItem(Label(f"[{item.key}] {item.label}"))
+                list_item.data = item   # store the MenuItem for use  later
+                yield list_item
         yield Footer()
 
-    def on_key(self, event):
+    async def on_key(self, event):
         for item in self.items:
             if event.key == item.key:
-                self._handle_menu_action(item)
+                await self._handle_menu_action(item)
                 return
 
-    def _handle_menu_action(self, item: MenuItem) -> None:
-        method = getattr(self.app, f"action_{item.action}", None)
-        if method:
-            method()
+    async def _handle_menu_action(self, item: MenuItem) -> None:
+        # Runs action_add_run / action_reset_db etc through Textual’s action system
+        await self.app.run_action(item.action)
+
+    @on(ListView.Selected)
+    async def _on_listview_selected(self, event: ListView.Selected) -> None:
+        item = event.item.data  # the MenuItem stored earlier
+        await self._handle_menu_action(item)

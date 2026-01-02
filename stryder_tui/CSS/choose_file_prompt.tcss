@@ -1,0 +1,28 @@
+Screen {
+    align: center middle;
+}
+
+#dialog {
+    width: 60;
+    height: 32;
+    padding: 2;
+    background: gray;
+}
+
+#question {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#buttons {
+    layout: horizontal;
+    width: 100%;
+    align-horizontal: center;
+    margin-top: 1;
+}
+
+#buttons Button {
+    margin: 0 2;
+}

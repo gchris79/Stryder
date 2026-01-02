@@ -1,3 +1,4 @@
+from textual import on
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.screen import Screen
@@ -8,7 +9,7 @@ class ConfirmDialog(Screen):
 
     CSS_PATH = "../CSS/confirm_dialog.tcss"
 
-    def __init__(self, question: str, yes_label: str="Yes", no_label: str="No"):
+    def __init__(self, question: str, yes_label: str="Yes", no_label: str="No") -> None:
         super().__init__()
         self.question = question
         self.yes_label = yes_label
@@ -34,8 +35,10 @@ class ConfirmDialog(Screen):
     def action_confirm_no(self) -> None:
         self.dismiss(False)
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "yes":
-            self.dismiss(True)
-        elif event.button.id == "no":
-            self.dismiss(False)
+    @on(Button.Pressed, "#yes")
+    async def _on_confirm_yes_pressed(self, event: Button.Pressed) -> None:
+        await self.run_action("confirm_yes")
+
+    @on(Button.Pressed, "#no")
+    async def _on_confirm_no_pressed(self, event: Button.Pressed) -> None:
+        await self.run_action("confirm_no")
