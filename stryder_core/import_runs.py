@@ -1,5 +1,7 @@
 import logging
 from pathlib import Path
+from typing import Callable
+
 import pandas as pd
 from stryder_core.pipeline import insert_full_run, process_csv_pipeline
 from stryder_core.file_parsing import ZeroStrydDataError
@@ -7,13 +9,19 @@ from stryder_core.db_schema import run_exists
 from stryder_core.utils import loadcsv_2df
 
 
-def batch_process_stryd_folder(stryd_folder, garmin_csv_path, conn, timezone_str: str | None = None):
+def batch_process_stryd_folder(
+        stryd_folder, garmin_csv_path, conn,
+        timezone_str: str | None = None,
+        on_progress: Callable[[str], None] | None = None
+    ):
     """Creates raw df's from Stryd/Garmin files, normalizes them via pipeline,
     checks if run already exists -> skip parsing, if not inserts the run.
     Logs per-file details and returns a summary dict.
     """
     stryd_files = list(Path(stryd_folder).glob("*.csv"))
     logging.info(f"📦 Found {len(stryd_files)} Stryd CSVs to process.")
+    if on_progress:
+        on_progress(f"📦 Found {len(stryd_files)} Stryd CSVs to process.")
 
     parsed = skipped = 0
 
@@ -21,6 +29,8 @@ def batch_process_stryd_folder(stryd_folder, garmin_csv_path, conn, timezone_str
 
     for file in stryd_files:
         logging.info(f"\n🔄 Processing {file.name}")
+        if on_progress:
+            on_progress(f"🔄 Processing {file.name}")
         stryd_raw_df = loadcsv_2df(file)
 
         run_result = evaluate_run_from_dfs(
@@ -49,6 +59,8 @@ def batch_process_stryd_folder(stryd_folder, garmin_csv_path, conn, timezone_str
         "Batch completed: %d parsed, %d skipped (total %d files)",
         parsed, skipped, len(stryd_files),
     )
+    if on_progress:
+        on_progress(f"Batch completed: {parsed}, {skipped} (total {len(stryd_files)})")
 
     # Structured return for the UI
     return {

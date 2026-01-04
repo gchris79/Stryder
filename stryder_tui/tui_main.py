@@ -7,6 +7,7 @@ from stryder_core.metrics import build_metrics
 from stryder_core.path_memory import load_json, CONFIG_PATH
 from stryder_tui.screens.choose_file_prompt import PathPicker
 from stryder_tui.screens.confirm_dialog import ConfirmDialog
+from stryder_tui.screens.import_progress import ImportProgress
 from stryder_tui.screens.menu_base import MenuBase
 from stryder_tui.screens.tz_prompt import TzPrompt
 
@@ -71,9 +72,12 @@ class StryderTui(App):
             return
         self.garmin_file = garmin_file
         self.push_screen(
-            PathPicker(question="Choose Garmin file to match workout name with Stryd runs",
-                       mode="file"),
-            callback=self.core_function_placeholder,
+            ImportProgress(
+                stryd_path=self.stryd_path,
+                garmin_file=self.garmin_file,
+                conn=self.conn,
+                tz=self.import_tz
+            )
         )
 
     # Reset Database option
