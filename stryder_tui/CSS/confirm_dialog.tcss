@@ -1,28 +1,28 @@
-Screen {
+ConfirmDialog Screen {
     align: center middle;
 }
 
-#dialog {
+ConfirmDialog #dialog {
     width: 60;
     height: 15;
     padding: 2;
     background: gray;
 }
 
-#question {
+ConfirmDialog #question {
     width: 100%;
     text-align: center;
     text-style: bold;
     margin-bottom: 1;
 }
 
-#buttons {
+ConfirmDialog #buttons {
     layout: horizontal;
     width: 100%;
     align-horizontal: center;
     margin-top: 1;
 }
 
-#buttons Button {
+ConfirmDialog #buttons Button {
     margin: 0 2;
 }

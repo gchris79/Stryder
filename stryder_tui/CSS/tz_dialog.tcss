@@ -1,28 +1,26 @@
-Screen {
-    align: center middle;
-}
 
-#dialog {
+
+TzPrompt #dialog {
     width: 60;
-    height: 32;
+    height: 28;
     padding: 2;
     background: gray;
 }
 
-#question {
+TzPrompt #question {
     width: 100%;
     text-align: center;
     text-style: bold;
     margin-bottom: 1;
 }
 
-#buttons {
+TzPrompt #buttons {
     layout: horizontal;
     width: 100%;
     align-horizontal: center;
     margin-top: 1;
 }
 
-#buttons Button {
+TzPrompt #buttons Button {
     margin: 0 2;
 }

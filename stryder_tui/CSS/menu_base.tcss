@@ -2,12 +2,12 @@ Screen {
     align: center middle;
 }
 
-ListView {
+MenuBase ListView {
     width: 40;
     height: auto;
     margin: 2 2;
 }
 
-Label {
+MenuBase Label {
     padding: 1 2;
 }

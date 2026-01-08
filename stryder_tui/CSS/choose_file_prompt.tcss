@@ -1,28 +1,28 @@
-Screen {
+PathPicker Screen {
     align: center middle;
 }
 
-#dialog {
+PathPicker #dialog {
     width: 60;
     height: 32;
     padding: 2;
     background: gray;
 }
 
-#question {
+PathPicker #question {
     width: 100%;
     text-align: center;
     text-style: bold;
     margin-bottom: 1;
 }
 
-#buttons {
+PathPicker #buttons {
     layout: horizontal;
     width: 100%;
     align-horizontal: center;
     margin-top: 1;
 }
 
-#buttons Button {
+PathPicker #buttons Button {
     margin: 0 2;
 }
