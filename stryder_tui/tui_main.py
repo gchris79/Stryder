@@ -1,8 +1,10 @@
 from textual.app import App
+
+from stryder_cli.cli_main import configure_connection
 from stryder_cli.cli_utils import MenuItem
 from stryder_core.bootstrap import bootstrap_context_core
 from stryder_core.config import DB_PATH
-from stryder_core.db_schema import connect_db, wipe_all_data
+from stryder_core.db_schema import connect_db, wipe_all_data, init_db
 from stryder_core.metrics import build_metrics
 from stryder_core.path_memory import load_json, CONFIG_PATH
 from stryder_tui.screens.choose_file_prompt import PathPicker
@@ -20,6 +22,12 @@ class StryderTui(App):
         self.resolved_paths = bootstrap_context_core(data)
         self.metrics = build_metrics("local")
         self.conn = connect_db(DB_PATH)
+        configure_connection(self.conn)
+        init_db(self.conn)
+
+    def on_exit(self):
+        if getattr(self, "conn", None):
+            self.conn.close()
 
     def on_ready(self) -> None:
         self.action_open_main_menu()
