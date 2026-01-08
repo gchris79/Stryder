@@ -75,7 +75,6 @@ class StryderTui(App):
             ImportProgress(
                 stryd_path=self.stryd_path,
                 garmin_file=self.garmin_file,
-                conn=self.conn,
                 tz=self.import_tz
             )
         )

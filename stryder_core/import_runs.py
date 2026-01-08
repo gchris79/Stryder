@@ -12,7 +12,8 @@ from stryder_core.utils import loadcsv_2df
 def batch_process_stryd_folder(
         stryd_folder, garmin_csv_path, conn,
         timezone_str: str | None = None,
-        on_progress: Callable[[str], None] | None = None
+        on_progress: Callable[[str], None] | None = None,
+        should_cancel: Callable[[], bool] | None = None,
     ):
     """Creates raw df's from Stryd/Garmin files, normalizes them via pipeline,
     checks if run already exists -> skip parsing, if not inserts the run.
@@ -27,10 +28,18 @@ def batch_process_stryd_folder(
 
     garmin_raw_df = loadcsv_2df(garmin_csv_path)
 
+    canceled = False
+
     for file in stryd_files:
+        # Check if user canceled parsing before finishing all the files
+        if should_cancel and should_cancel():
+            canceled = True
+            break
+
         logging.info(f"\n🔄 Processing {file.name}")
         if on_progress:
             on_progress(f"🔄 Processing {file.name}")
+
         stryd_raw_df = loadcsv_2df(file)
 
         run_result = evaluate_run_from_dfs(
@@ -39,6 +48,7 @@ def batch_process_stryd_folder(
             file.name,
             conn,
             timezone_str,
+            on_progress=on_progress
         )
         if run_result["status"] == "ok":
             insert_full_run(
@@ -68,6 +78,7 @@ def batch_process_stryd_folder(
         "parsed": parsed,
         "skipped": skipped,
         "files_total": len(stryd_files),
+        "canceled" : canceled
     }
 
 
@@ -112,7 +123,8 @@ def prepare_run_insert(stryd_file, garmin_file, file_name, conn, timezone_str):
     return evaluate_run_from_dfs(stryd_raw_df, garmin_raw_df, file_name, conn, timezone_str)
 
 
-def evaluate_run_from_dfs(stryd_raw_df, garmin_raw_df, file_name, conn, timezone_str):
+def evaluate_run_from_dfs(stryd_raw_df, garmin_raw_df, file_name, conn, timezone_str,
+                          on_progress: Callable[[str], None] | None = None):
     """
     Core logic: takes *already loaded* raw dataframes,
     runs the pipeline, checks DB, and returns the result dict.
@@ -145,16 +157,22 @@ def evaluate_run_from_dfs(stryd_raw_df, garmin_raw_df, file_name, conn, timezone
         # Check the DB to avoid re-inserts
         if run_exists(conn, start_time_str):
             logging.info(f"⚠️  Already in DB: {file_name} ({start_time_str})")
+            if on_progress:
+                on_progress(f"⚠️  Already in DB: {file_name} ({start_time_str})")
             result["status"] = "already_exists"
             return result
 
     except ZeroStrydDataError as e:
         logging.info(f"⏭️ Run skipped due to zero Stryd speed/distance: {file_name} — {e}")
+        if on_progress:
+            on_progress(f"⏭️ Run skipped due to zero Stryd speed/distance: {file_name} — {e}")
         result["status"] = "zero_data"
         return result
 
     except Exception as e:
         logging.error(f"❌ Failed to process {file_name}: {e}")
+        if on_progress:
+            on_progress(f"❌ Failed to process {file_name}: {e}")
         result["error"] = str(e)
         result["status"] = "error"
         return result
@@ -165,10 +183,14 @@ def evaluate_run_from_dfs(stryd_raw_df, garmin_raw_df, file_name, conn, timezone
     result["workout_name"] = workout_name
     if workout_name != "Unknown":
         logging.info(f"✅ Garmin match found: {file_name} - {total_m / 1000:.2f} km")
+        if on_progress:
+            on_progress(f"✅ Garmin match found: {file_name} - {total_m / 1000:.2f} km")
         result["status"] = "ok"
         return result
 
     else:
         logging.info(f"✅ No Garmin match found: {file_name}")
+        if on_progress:
+            on_progress(f"✅ No Garmin match found: {file_name}")
         result["status"] = "no_garmin"
         return result

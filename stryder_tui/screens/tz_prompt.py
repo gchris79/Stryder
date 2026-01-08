@@ -36,7 +36,7 @@ class TzPrompt(Screen):
         pressed = radioset.pressed_button  # selected RadioButton (or None)
         if pressed is None:
             return
-        tz = str(pressed.label)  # label is what you displayed
+        tz = str(pressed.label)  # label is what was displayed
         self.dismiss(tz)
 
     def action_back(self) -> None:
