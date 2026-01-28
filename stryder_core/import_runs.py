@@ -156,9 +156,9 @@ def evaluate_run_from_dfs(stryd_raw_df, garmin_raw_df, file_name, conn, timezone
 
         # Check the DB to avoid re-inserts
         if run_exists(conn, start_time_str):
-            logging.info(f"⚠️  Already in DB: {file_name} ({start_time_str})")
+            logging.info(f"⚠️  Run already exists in DB: {file_name} ({start_time_str})")
             if on_progress:
-                on_progress(f"⚠️  Already in DB: {file_name} ({start_time_str})")
+                on_progress(f"⚠️  Run already exists in DB: {file_name} ({start_time_str})")
             result["status"] = "already_exists"
             return result
 

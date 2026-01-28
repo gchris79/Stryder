@@ -1,5 +1,6 @@
-from textual.app import App
+from typing import Literal
 
+from textual.app import App
 from stryder_cli.cli_main import configure_connection
 from stryder_cli.cli_utils import MenuItem
 from stryder_core.bootstrap import bootstrap_context_core
@@ -24,6 +25,7 @@ class StryderTui(App):
         self.conn = connect_db(DB_PATH)
         configure_connection(self.conn)
         init_db(self.conn)
+        self.mode : Literal["import", "unparsed"] = "import"
 
     def on_exit(self):
         if getattr(self, "conn", None):
@@ -44,8 +46,15 @@ class StryderTui(App):
         ]
         self.push_screen(MenuBase("Main Menu", items))
 
-    # Import run option, tz dialog first
+
+    # Import run option
     def action_add_run(self):
+        self.mode = "import"
+        self.push_screen(TzPrompt(), callback=self._handle_import_tz_response)
+
+    # Find unparsed runs option
+    def action_find_unparsed(self):
+        self.mode = "unparsed"
         self.push_screen(TzPrompt(), callback=self._handle_import_tz_response)
 
     # If tz chosen, move to Stryd file/dir dialog
@@ -79,11 +88,13 @@ class StryderTui(App):
                 )
             return
         self.garmin_file = garmin_file
+
         self.push_screen(
             ImportProgress(
                 stryd_path=self.stryd_path,
                 garmin_file=self.garmin_file,
-                tz=self.import_tz
+                tz=self.import_tz,
+                mode=self.mode
             )
         )
 

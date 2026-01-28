@@ -1,28 +1,28 @@
-TzPrompt {
+NoGarminDialog {
     align: center middle;
 }
 
-TzPrompt #dialog {
+NoGarminDialog #dialog {
     width: 60;
-    height: 32;
+    height: 15;
     padding: 2;
     background: gray;
 }
 
-TzPrompt #question {
+NoGarminDialog #question {
     width: 100%;
     text-align: center;
     text-style: bold;
     margin-bottom: 1;
 }
 
-TzPrompt #buttons {
+NoGarminDialog #buttons {
     layout: horizontal;
     width: 100%;
     align-horizontal: center;
     margin-top: 1;
 }
 
-TzPrompt #buttons Button {
+NoGarminDialog #buttons Button {
     margin: 0 2;
 }

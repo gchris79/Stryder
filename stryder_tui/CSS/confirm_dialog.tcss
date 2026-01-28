@@ -1,4 +1,4 @@
-ConfirmDialog Screen {
+ConfirmDialog {
     align: center middle;
 }
 

@@ -1,28 +1,28 @@
-TzPrompt {
+UnparsedDialog {
     align: center middle;
 }
 
-TzPrompt #dialog {
+UnparsedDialog #dialog {
     width: 60;
-    height: 32;
+    height: 15;
     padding: 2;
     background: gray;
 }
 
-TzPrompt #question {
+UnparsedDialog #question {
     width: 100%;
     text-align: center;
     text-style: bold;
     margin-bottom: 1;
 }
 
-TzPrompt #buttons {
+UnparsedDialog #buttons {
     layout: horizontal;
     width: 100%;
     align-horizontal: center;
     margin-top: 1;
 }
 
-TzPrompt #buttons Button {
+UnparsedDialog #buttons Button {
     margin: 0 2;
 }

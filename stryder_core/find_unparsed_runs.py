@@ -1,4 +1,6 @@
 import logging
+from typing import Callable
+
 import pandas as pd
 from pathlib import Path
 from stryder_core.metrics import align_df_to_metric_keys, STRYD_PARSE_SPEC
@@ -25,18 +27,31 @@ def convert_first_timestamp_to_str(file_path):
     return ts.isoformat(sep=' ', timespec='seconds')
 
 
-def find_unparsed_files(stryd_folder: Path, conn) -> dict:
+def find_unparsed_files(stryd_folder: Path, conn,
+                        on_progress: Callable[[str], None] | None = None,
+                        should_cancel: Callable[[], bool] | None = None,) -> dict:
     """Return a list of Stryd CSV files that are not in the DB yet."""
     existing = get_existing_datetimes(conn) # set of strings
     unparsed = []
     total_files = 0
 
+    canceled = False
+
     for file in stryd_folder.glob("*.csv"):
+        if should_cancel and should_cancel():
+            canceled = True
+            break
         total_files += 1
+        logging.info(f"\n🔄 Processing {file.name}")
+        if on_progress:
+            on_progress(f"🔄 Processing {file.name}")
+
         try:
             ts_str = convert_first_timestamp_to_str(file)
         except Exception as e:
             logging.warning(f"Failed to inspect {file.name}: {e}")
+            if on_progress:
+                on_progress(f"Failed to inspect {file.name}: {e}")
             # treat unreadable as unparsed
             unparsed.append(file)
             continue
@@ -49,4 +64,5 @@ def find_unparsed_files(stryd_folder: Path, conn) -> dict:
         "total_files": total_files,
         "unparsed_files": unparsed,
         "parsed_files": total_files - len(unparsed),
+        "canceled": canceled
     }

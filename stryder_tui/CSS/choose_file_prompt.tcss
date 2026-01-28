@@ -1,4 +1,4 @@
-PathPicker Screen {
+PathPicker {
     align: center middle;
 }
 

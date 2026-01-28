@@ -31,7 +31,7 @@ def find_unparsed_cli():
         print("\n🎉 Nothing to do. All files are already parsed.")
         return
 
-    # Then run your interactive step:
+    # Run interactive step:
     parsed_count = 0
     skipped_count = 0
 

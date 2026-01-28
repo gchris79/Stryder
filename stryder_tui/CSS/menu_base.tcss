@@ -1,4 +1,4 @@
-Screen {
+MenuBase {
     align: center middle;
 }
 
