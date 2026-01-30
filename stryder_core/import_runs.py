@@ -22,7 +22,7 @@ def batch_process_stryd_folder(
     stryd_files = list(Path(stryd_folder).glob("*.csv"))
     logging.info(f"📦 Found {len(stryd_files)} Stryd CSVs to process.")
     if on_progress:
-        on_progress(f"📦 Found {len(stryd_files)} Stryd CSVs to process.")
+        on_progress(f"⏹ Found {len(stryd_files)} Stryd CSVs to process.")
 
     parsed = skipped = 0
 
@@ -38,7 +38,7 @@ def batch_process_stryd_folder(
 
         logging.info(f"\n🔄 Processing {file.name}")
         if on_progress:
-            on_progress(f"🔄 Processing {file.name}")
+            on_progress(f"-- Processing {file.name}")
 
         stryd_raw_df = loadcsv_2df(file)
 
@@ -158,14 +158,14 @@ def evaluate_run_from_dfs(stryd_raw_df, garmin_raw_df, file_name, conn, timezone
         if run_exists(conn, start_time_str):
             logging.info(f"⚠️  Run already exists in DB: {file_name} ({start_time_str})")
             if on_progress:
-                on_progress(f"⚠️  Run already exists in DB: {file_name} ({start_time_str})")
+                on_progress(f"! Run already exists in DB: {file_name} ({start_time_str})")
             result["status"] = "already_exists"
             return result
 
     except ZeroStrydDataError as e:
         logging.info(f"⏭️ Run skipped due to zero Stryd speed/distance: {file_name} — {e}")
         if on_progress:
-            on_progress(f"⏭️ Run skipped due to zero Stryd speed/distance: {file_name} — {e}")
+            on_progress(f">> Run skipped due to zero Stryd speed/distance: {file_name} — {e}")
         result["status"] = "zero_data"
         return result
 
@@ -184,13 +184,13 @@ def evaluate_run_from_dfs(stryd_raw_df, garmin_raw_df, file_name, conn, timezone
     if workout_name != "Unknown":
         logging.info(f"✅ Garmin match found: {file_name} - {total_m / 1000:.2f} km")
         if on_progress:
-            on_progress(f"✅ Garmin match found: {file_name} - {total_m / 1000:.2f} km")
+            on_progress(f"✔ Garmin match found: {file_name} - {total_m / 1000:.2f} km")
         result["status"] = "ok"
         return result
 
     else:
-        logging.info(f"✅ No Garmin match found: {file_name}")
+        logging.info(f"❌ No Garmin match found: {file_name}")
         if on_progress:
-            on_progress(f"✅ No Garmin match found: {file_name}")
+            on_progress(f"❌ No Garmin match found: {file_name}")
         result["status"] = "no_garmin"
         return result

@@ -30,7 +30,7 @@ def convert_first_timestamp_to_str(file_path):
 def find_unparsed_files(stryd_folder: Path, conn,
                         on_progress: Callable[[str], None] | None = None,
                         should_cancel: Callable[[], bool] | None = None,) -> dict:
-    """Return a list of Stryd CSV files that are not in the DB yet."""
+    """Return a dict of Stryd CSV files that are not in the DB yet."""
     existing = get_existing_datetimes(conn) # set of strings
     unparsed = []
     total_files = 0
@@ -44,7 +44,7 @@ def find_unparsed_files(stryd_folder: Path, conn,
         total_files += 1
         logging.info(f"\n🔄 Processing {file.name}")
         if on_progress:
-            on_progress(f"🔄 Processing {file.name}")
+            on_progress(f"-- Processing {file.name}")
 
         try:
             ts_str = convert_first_timestamp_to_str(file)

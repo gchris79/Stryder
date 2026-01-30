@@ -1,3 +1,31 @@
 ImportProgress {
-    align: center middle;
+    layout: vertical;
+    align-horizontal: center;
+}
+
+ImportProgress #screen_wrapper {
+    layout: vertical;
+    width: 70;
+    height: 1fr;
+}
+
+ImportProgress #log {
+    height: 1fr;
+    padding: 1 2;
+    border: round $secondary;
+}
+
+ImportProgress #panel_wrapper {
+    height: auto;
+    align: left top;
+    min-height: 7;
+    padding: 1 2;
+    border-top: heavy $primary;
+}
+
+ImportProgress #buttons {
+    height: 4;
+    layout: horizontal;
+    width: 100%;
+    align-horizontal: center;
 }
