@@ -127,6 +127,47 @@ class ImportProgress(Screen):
         self.post_message(ImportFinished(summary))
 
 
+    def start_unparsed_review(self):
+        log = self.query_one("#log", RichLog)
+        if len(self.unparsed_files) == 0:
+            log.write("Nothing to review")
+            self.import_done = True
+        elif len(self.unparsed_files) > 0:
+            log.write(f"⏹ Scan complete. Found {len(self.unparsed_files)} unparsed Stryd CSVs to process.")
+            self.review_mode = "unparsed"
+            self._show_current_unparsed_file()
+
+
+    def _advance_to_next_file(self) -> None:
+        """Move to the next unparsed file and refresh the UI."""
+        self.unparsed_index += 1
+        self.review_mode = "unparsed"
+        self._show_current_unparsed_file()
+
+    def _handle_no_garmin_decision(self, choice: str):
+        file = self.unparsed_files[self.unparsed_index]
+        log = self.query_one("#log", RichLog)
+
+        if choice == "parse":
+            conn = connect_db(self.db_path)
+            try:
+                insert_full_run(self.run["stryd_df"], self.run["workout_name"], notes="", avg_power=self.run["avg_power"],
+                                avg_hr=None, total_m=self.run["total_m"], conn=conn)
+                self.unparsed_parsed_count += 1
+                log.write(f"! Parsed without Garmin match: {file.name}")
+                self._advance_to_next_file()
+            finally:
+                conn.close()
+
+        elif choice == "tz":
+            self.app.push_screen(TzPrompt(), callback=self._handle_tz_response)
+
+        elif choice == "skip":
+            self.unparsed_skipped_count += 1
+            log.write(f">> Skipping file: {file.name}")
+            self._advance_to_next_file()
+
+
     def _update_review_panel_for_current_file(self):
 
         label_header = self.query_one("#panel_header", Label)
@@ -147,17 +188,6 @@ class ImportProgress(Screen):
             label_keys.update("\nKeys:\n(p) Parse without Garmin (z) Change TZ (s) Skip")
         else:
             label_keys.update("\nKeys:\n(q) Exit to main menu")
-
-
-    def start_unparsed_review(self):
-        log = self.query_one("#log", RichLog)
-        if len(self.unparsed_files) == 0:
-            log.write("Nothing to review")
-            self.import_done = True
-        elif len(self.unparsed_files) > 0:
-            log.write(f"⏹ Scan complete. Found {len(self.unparsed_files)} unparsed Stryd CSVs to process.")
-            self.review_mode = "unparsed"
-            self._show_current_unparsed_file()
 
 
     def _show_current_unparsed_file(self):
@@ -252,39 +282,18 @@ class ImportProgress(Screen):
             log.write(f"Parsed: {self.unparsed_parsed_count}, Skipped: {self.unparsed_skipped_count}, Remaining: {len(self.unparsed_files) - self.unparsed_index}")
             self.import_done = True
 
-    def _advance_to_next_file(self) -> None:
-        """Move to the next unparsed file and refresh the UI."""
-        self.unparsed_index += 1
-        self.review_mode = "unparsed"
-        self._show_current_unparsed_file()
-
-    def _handle_no_garmin_decision(self, choice: str):
-        file = self.unparsed_files[self.unparsed_index]
-        log = self.query_one("#log", RichLog)
-
-        if choice == "parse":
-            conn = connect_db(self.db_path)
-            try:
-                insert_full_run(self.run["stryd_df"], self.run["workout_name"], notes="", avg_power=self.run["avg_power"],
-                                avg_hr=None, total_m=self.run["total_m"], conn=conn)
-                self.unparsed_parsed_count += 1
-                log.write(f"! Parsed without Garmin match: {file.name}")
-                self._advance_to_next_file()
-            finally:
-                conn.close()
-
-        elif choice == "tz":
-            self.app.push_screen(TzPrompt(), callback=self._handle_tz_response)
-
-        elif choice == "skip":
-            self.unparsed_skipped_count += 1
-            log.write(f">> Skipping file: {file.name}")
-            self._advance_to_next_file()
-
 
     def _emit_progress(self, msg: str) -> None:
         # Called from worker thread
         self.post_message(ProgressLine(msg))
+
+
+    def _handle_exit_response(self, confirmed: bool) -> None:
+        if confirmed:
+            self.should_cancel = True
+            log = self.query_one("#log", RichLog)
+            log.write("⏹ Cancel requested… stopping after current file.")
+
 
     def on_progress_line(self, message: ProgressLine) -> None:
         # Runs on UI thread → safe to update widgets
@@ -320,12 +329,6 @@ class ImportProgress(Screen):
             else:
                 self.start_unparsed_review()
 
-
-    def _handle_exit_response(self, confirmed: bool) -> None:
-        if confirmed:
-            self.should_cancel = True
-            log = self.query_one("#log", RichLog)
-            log.write("⏹ Cancel requested… stopping after current file.")
 
 
     def action_parse_file(self) -> None:

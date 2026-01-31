@@ -13,6 +13,7 @@ from stryder_tui.screens.confirm_dialog import ConfirmDialog
 from stryder_tui.screens.import_progress import ImportProgress
 from stryder_tui.screens.menu_base import MenuBase
 from stryder_tui.screens.tz_prompt import TzPrompt
+from stryder_tui.screens.view_runs import ViewRunsScreen
 
 
 class StryderTui(App):
@@ -97,6 +98,10 @@ class StryderTui(App):
                 mode=self.mode
             )
         )
+
+    # View runs option
+    def action_view_runs(self):
+        self.push_screen(ViewRunsScreen(self.metrics, "Europe/Athens"))
 
     # Reset Database option
     def action_reset_db(self):
