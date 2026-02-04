@@ -7,6 +7,7 @@ from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db
 from stryder_core.queries import views_query, fetch_views_page, count_rows_for_query
 from stryder_core.table_formatters import format_view_columns
+from stryder_tui.screens.single_run_report import SingleRunReport
 
 
 class ViewRunsScreen(Screen):
@@ -37,6 +38,7 @@ class ViewRunsScreen(Screen):
         ("escape", "quit", "Quit to main menu"),
         ("p", "previous_page", "Go to previous page"),
         ("n", "next_page", "Go to next page"),
+        ("r", "open_report", "Open single run report"),
     ]
 
     def on_mount(self):
@@ -92,6 +94,16 @@ class ViewRunsScreen(Screen):
         page_label.update(f"Page: {self.page} / {self.total}")
         conn.close()
 
+    def action_open_report(self):
+        table = self.query_one(DataTable)
+        if table.cursor_row is None:
+            return
+
+        run_id = table.cursor_row
+        print("Selected run_id:", run_id)
+        self.app.push_screen(SingleRunReport(run_id, self.metrics, self.tz))
+
+
     def action_quit(self) -> None:
         self.app.pop_screen()
 
@@ -119,5 +131,13 @@ class ViewRunsScreen(Screen):
 
         table.clear(columns=False)
 
+        # Link run_id with table's row key and build table rows
         for row in formatted_rows:
+            run_id = row[0]
             table.add_row(*row)
+
+        # Make the first row of the table selected
+        if formatted_rows:
+            table.cursor_type = "row"
+            table.focus()
+            table.move_cursor(row=0, column=0)
