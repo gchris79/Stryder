@@ -43,7 +43,7 @@ class StryderTui(App):
             MenuItem("3", "View runs", "view_runs"),
             MenuItem("4", "Run reports", "run_reports"),
             MenuItem("5", "Reset database", "reset_db"),
-            MenuItem("q", "Quit", "quit"),
+            MenuItem("escape", "Quit", "quit"),
         ]
         self.push_screen(MenuBase("Main Menu", items))
 

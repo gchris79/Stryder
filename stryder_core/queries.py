@@ -106,7 +106,7 @@ def fetch_page(
     base,
     base_params: tuple = (),
     last_cursor: tuple | None = None,    # cursor: (last_datetime_iso, last_id)
-    page_size: int | None = 20,
+    page_size: int | None = 15,
 ):
     """ Takes a db connection a base query, base params, the last cursor and the page size
      a) gives option to return full table if no page size provided
@@ -114,6 +114,8 @@ def fetch_page(
      c) ads ORDER afterward
      d) checks if it's the end of the query or not
      e) returns rows, columns and cursor_next for the page """
+
+    #TODO: This function will be deprecated. Cursor-based pagination; currently used only by CLI. TUI uses offset-based pagination instead.
 
     # No pagination: return the full table, ignore cursor/lookahead
     if not page_size:  # 0 or None
@@ -144,10 +146,36 @@ def fetch_page(
 
     # Lookahead handling
     if len(rows) == limit:
-        last = rows[-1]
-        cursor_next = (last["datetime"], last["run_id"])
-        rows = rows[:-1]  # trim the lookahead row from current page
+        rows_for_page = rows[:page_size]
+        last_displayed = rows_for_page[-1]
+
+        cursor_next = (last_displayed["datetime"], last_displayed["run_id"])
+        rows = rows_for_page
     else:
         cursor_next = None
 
     return rows, columns, cursor_next
+
+
+def fetch_views_page(conn, base, page, base_params: tuple = (), page_size: int | None = 15):
+    """ Takes a db connection a base query, base params, the current page and page size and
+     a) sets off using current page and page size
+     a) ads ORDER afterward
+     b) uses limit and offset to map the page
+     c) returns rows and columns for the page """
+
+    offset = (page - 1) * page_size
+
+    sql = f"""{base} ORDER BY r.datetime, r.id
+                     LIMIT ? OFFSET ?"""
+    params = base_params + (page_size, offset)
+    rows, columns = _fetch(conn, sql, params)
+
+    return rows, columns
+
+
+def count_rows_for_query(conn, base_query:str, base_params:tuple = ()) -> int:
+    """ Return the number of rows matching the query """
+    sql = f"SELECT COUNT(*) FROM ({base_query})"
+    cur = conn.execute(sql, base_params)
+    return cur.fetchone()[0]

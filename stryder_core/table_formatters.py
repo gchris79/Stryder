@@ -16,9 +16,10 @@ def format_view_columns(rows, mode, metrics = None):
     for row in rows:
         # Header and data column order
         if mode == "for_views":
-            headers = get_keys(["dt", "wt_name", "distance", "duration", "power_avg", "avg_hr", "wt_type"])
+            headers = get_keys(["id", "dt", "wt_name", "distance", "duration", "power_avg", "avg_hr", "wt_type"])
             dt_obj = metrics["dt"]["formatter"](row["datetime"])
             display = [
+                row["run_id"],
                 dt_to_string(dt_obj, "ymd_hms", tz=tz),
                 row["wt_name"],
                 metrics["distance"]["formatter"](row["distance_m"]),

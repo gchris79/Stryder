@@ -6,11 +6,11 @@ from stryder_core.table_formatters import format_row_for_ui, format_runs_summary
 from stryder_core.utils_formatting import fmt_hms
 
 
-def get_x_days_for_ui(conn, days: int | None = None,
-                      end_date: date | None = None,
-                      start_date: date | None = None,
-                      keyword: str | None = None,
-                      ) -> tuple:
+def get_x_days_for_django(conn, days: int | None = None,
+                          end_date: date | None = None,
+                          start_date: date | None = None,
+                          keyword: str | None = None,
+                          ) -> tuple:
     """Get runs and dates for either:
        - last `days`, or
        - explicit [start_date, end_date] range.
@@ -45,6 +45,7 @@ def get_x_days_for_ui(conn, days: int | None = None,
     for row in rows:
         row_dict = dict(zip(columns, row))          # turn tuple → dict
         runs.append(format_row_for_ui(row_dict, metrics))
+
     return runs, end_date, start_date
 
 
@@ -56,7 +57,7 @@ def get_dashboard_summary(conn, tz_name,
     """Build ctx with 'runs' (formatted for UI) and 'summary' for dashboard."""
 
     # if days is given, ignore start/end; otherwise use explicit range
-    runs, end_date, start_date = get_x_days_for_ui(
+    runs, end_date, start_date = get_x_days_for_django(
         conn,
         days=days,
         end_date=end_date,
