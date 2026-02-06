@@ -27,7 +27,7 @@ class ViewRunsScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         #yield Input(placeholder="Choose date...")
-        yield DataTable()
+        yield DataTable(id="run_view")
         yield Button(label="Quit", id="quit")
         yield Label("", id="page_label")
         yield Footer()
@@ -95,12 +95,14 @@ class ViewRunsScreen(Screen):
         conn.close()
 
     def action_open_report(self):
-        table = self.query_one(DataTable)
+        table = self.query_one("#run_view",DataTable)
         if table.cursor_row is None:
             return
+        # Get Table's index, get row values for that index, and get the 1 column value for run_id
+        row_index = table.cursor_row
+        row_values = table.get_row_at(row_index)
+        run_id = int(row_values[0])
 
-        run_id = table.cursor_row
-        print("Selected run_id:", run_id)
         self.app.push_screen(SingleRunReport(run_id, self.metrics, self.tz))
 
 
@@ -123,18 +125,16 @@ class ViewRunsScreen(Screen):
         )
         headers, formatted_rows = format_view_columns(rows, mode, metrics)
 
-        table = self.query_one(DataTable)
-
+        table = self.query_one("#run_view",DataTable)
         first_time = len(table.columns) == 0
         if first_time:
             table.add_columns(*headers)
 
         table.clear(columns=False)
-
         # Link run_id with table's row key and build table rows
         for row in formatted_rows:
             run_id = row[0]
-            table.add_row(*row)
+            table.add_row(*row, key=run_id)
 
         # Make the first row of the table selected
         if formatted_rows:
