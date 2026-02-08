@@ -330,6 +330,10 @@ class ImportProgress(Screen):
                 self.start_unparsed_review()
 
 
+    @on(Button.Pressed, "#quit")
+    async def _on_quit_pressed(self, event: Button.Pressed) -> None:
+        await self.run_action("quit")
+
 
     def action_parse_file(self) -> None:
         if self.review_mode == "unparsed":
@@ -360,8 +364,3 @@ class ImportProgress(Screen):
                 ConfirmDialog("Are you sure you want to stop parsing runs to the database?"),
                 callback=self._handle_exit_response
             )
-
-
-    @on(Button.Pressed, "#quit")
-    async def _on_quit_pressed(self, event: Button.Pressed) -> None:
-        await self.run_action("quit")

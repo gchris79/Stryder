@@ -1,3 +1,4 @@
+from plotext import clear_figure
 from textual.containers import Container
 from textual_plotext import PlotextPlot
 from textual.app import ComposeResult
@@ -68,6 +69,7 @@ class SingleRunReport(Screen):
 
         y_series, y_meta, y_label, x_series, x_meta, x_label = self._refresh_plot()
         plt = self.query_one(PlotextPlot).plt
+        plt.clear_figure()
         plt.plot(x_series, y_series, label= f"{y_label} over {x_label}")
         plt.title("Single Run Report")
         plt.show()
@@ -95,13 +97,6 @@ class SingleRunReport(Screen):
             row = df_summary.iloc[0]
             table.add_row(*row)
 
-    def _translate_metric_keys_dict(self):
-        """ Creating a dict that mirrors inner metric key to outer metric key """
-        metrics_by_inner_key = {}
-        for y_key, y_meta in self.metrics.items():
-            metrics_by_inner_key[y_meta["key"]] = y_meta
-        self.metrics_by_inner_key = metrics_by_inner_key
-
 
     def _get_radioset_axis_value(self, widget_id:str, ) -> str|None:
         radioset = self.query_one(widget_id, RadioSet)
@@ -118,7 +113,23 @@ class SingleRunReport(Screen):
         x_series = self.samples[self.x_axis]    # x axis data
         x_meta = X_AXIS_SPEC[self.x_axis]       # x axis key
         x_label = x_meta["label"] + " " + x_meta["unit"]
+
+        plot_widget = self.query_one(PlotextPlot)
+        plt = plot_widget.plt
+        plt.clear_figure()
+        plt.plot(x_series, y_series, label=f"{y_label} over {x_label}")
+        plt.title("Single Run Report")
+        plot_widget.refresh()
+
         return y_series, y_meta, y_label, x_series, x_meta, x_label
 
     def action_back(self):
         self.app.pop_screen()
+
+    def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
+        if event.radio_set.id == "y_axis":
+            self.y_axis = event.pressed.id
+        elif event.radio_set.id == "x_axis":
+            self.x_axis = event.pressed.id
+
+        self._refresh_plot()
