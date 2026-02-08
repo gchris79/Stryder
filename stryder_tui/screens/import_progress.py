@@ -30,7 +30,7 @@ class ImportFinished(Message):
 
 class ImportProgress(Screen):
 
-    CSS_PATH = "../CSS/import_progress.tcss"
+    CSS_PATH = "../CSS/single_run_report.tcss"
 
     def __init__(self, stryd_path: str, garmin_file: str, tz: str,
                  mode : Literal["import", "unparsed"],) -> None:

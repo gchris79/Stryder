@@ -1,0 +1,35 @@
+SingleRunReport {
+    layout: vertical;
+    height: 100%;
+}
+
+SingleRunReport #table_wrapper {
+    height: 2;
+    margin: 1 0;
+    width: 100%;
+    align:center top;
+}
+
+SingleRunReport DataTable {
+    height: 2;
+    width:auto;
+}
+
+SingleRunReport #plot_panel {
+    layout: horizontal;
+    height: 1fr;
+}
+
+SingleRunReport #radio_axis {
+    layout: vertical;
+    width: 30;
+    height: 100%;
+}
+
+SingleRunReport #radio_axis > RadioSet {
+    height: 1fr;
+}
+
+SingleRunReport PlotextPlot {
+    height: 100%;
+}
