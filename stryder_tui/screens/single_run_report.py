@@ -1,4 +1,4 @@
-from plotext import clear_figure
+import pandas as pd
 from textual.containers import Container
 from textual_plotext import PlotextPlot
 from textual.app import ComposeResult
@@ -11,6 +11,7 @@ from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db
 from stryder_core.plot_core import X_AXIS_SPEC
 from stryder_core.reports import get_single_run_query
+
 
 default_y_axis = "power_sec"
 default_x_axis = "elapsed_sec"
@@ -64,15 +65,10 @@ class SingleRunReport(Screen):
 
         self.y_axis = self._get_radioset_axis_value("#y_axis")
         self.x_axis = self._get_radioset_axis_value("#x_axis")
-        # log = self.query_one("#log", Label)
-        # log.update(f"{self.samples}")
 
-        y_series, y_meta, y_label, x_series, x_meta, x_label = self._refresh_plot()
         plt = self.query_one(PlotextPlot).plt
         plt.clear_figure()
-        plt.plot(x_series, y_series, label= f"{y_label} over {x_label}")
-        plt.title("Single Run Report")
-        plt.show()
+        self._refresh_plot()
 
 
     def load_single_run_summary(self, conn) -> None:
@@ -112,16 +108,34 @@ class SingleRunReport(Screen):
 
         x_series = self.samples[self.x_axis]    # x axis data
         x_meta = X_AXIS_SPEC[self.x_axis]       # x axis key
-        x_label = x_meta["label"] + " " + x_meta["unit"]
+        if self.x_axis == "elapsed_sec":
+            x_label = x_meta["label"] + " (mins)"
+        else:
+            x_label = x_meta["label"] + " " + x_meta["unit"]
+        # Format x-axis to minutes or kilometres
+        df = self.samples.copy()
+        if self.x_axis == "elapsed_sec":
+            # compute once if absent
+            if "elapsed_sec" not in self.samples.columns:
+                df["elapsed_sec"] = (df["dt"] - df["dt"].iloc[0]).dt.total_seconds()
+            x = pd.to_numeric(df["elapsed_sec"], errors="coerce") / 60
+        elif self.x_axis == "distance_km":
+            if "distance_km" in self.samples.columns:
+                x = pd.to_numeric(df["distance_km"], errors="coerce")
+            else:
+                # derive from meters
+                x = (pd.to_numeric(df["distance_m"], errors="coerce") - float(df["distance_m"].min())) / 1000.0
+        else:
+            raise ValueError(f"Unsupported x_meta={x_meta}. Use 'elapsed_sec' or 'distance_km'.")
 
+        # Paint the plot
         plot_widget = self.query_one(PlotextPlot)
         plt = plot_widget.plt
         plt.clear_figure()
-        plt.plot(x_series, y_series, label=f"{y_label} over {x_label}")
+        plt.plot(x, y_series, label=f"{y_label} over {x_label}")
         plt.title("Single Run Report")
         plot_widget.refresh()
 
-        return y_series, y_meta, y_label, x_series, x_meta, x_label
 
     def action_back(self):
         self.app.pop_screen()
