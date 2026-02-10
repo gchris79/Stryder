@@ -1,0 +1,16 @@
+ViewRuns {
+    layout: vertical;
+    height: 100%;
+}
+
+ViewRuns #filters {
+    layout: horizontal;
+    height: 3;
+    width: 100%;
+    align: center top;
+    margin: 1 0;
+}
+
+ViewRuns Input {
+    width: 50;
+}

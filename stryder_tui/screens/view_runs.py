@@ -1,6 +1,7 @@
 from textual.app import ComposeResult
+from textual.containers import Container
 from textual.screen import Screen
-from textual.widgets import Header, DataTable, Button, Footer, Label
+from textual.widgets import Header, DataTable, Button, Footer, Label, Input
 
 from stryder_cli.cli_main import configure_connection
 from stryder_core.config import DB_PATH
@@ -10,7 +11,9 @@ from stryder_core.table_formatters import format_view_columns
 from stryder_tui.screens.single_run_report import SingleRunReport
 
 
-class ViewRunsScreen(Screen):
+class ViewRuns(Screen):
+
+    CSS_PATH = "../CSS/view_runs.tcss"
 
     def __init__(self, metrics: dict, tz: str, mode="for_views") -> None:
         super().__init__()
@@ -26,13 +29,14 @@ class ViewRunsScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        #yield Input(placeholder="Choose date...")
+        with Container(id="filters"):
+            yield Input(placeholder="Choose start date YYYY-MM-DD...", max_length=10, id="start_date")
+            yield Input(placeholder="Choose end date YYYY-MM-DD...", max_length=10, id="end_date")
+            yield Input(placeholder="Choose keyword...", id="keyword")
         yield DataTable(id="run_view")
         yield Button(label="Quit", id="quit")
         yield Label("", id="page_label")
         yield Footer()
-
-
 
     BINDINGS = [
         ("escape", "quit", "Quit to main menu"),
