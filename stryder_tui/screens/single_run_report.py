@@ -1,3 +1,4 @@
+import math
 import pandas as pd
 from textual.containers import Container
 from textual_plotext import PlotextPlot
@@ -13,6 +14,7 @@ from stryder_core.plot_core import X_AXIS_SPEC
 from stryder_core.reports import get_single_run_query
 
 
+MAX_POINTS = 800            # max points for plot sampling without downsampling
 default_y_axis = "power_sec"
 default_x_axis = "elapsed_sec"
 
@@ -128,11 +130,21 @@ class SingleRunReport(Screen):
         else:
             raise ValueError(f"Unsupported x_meta={x_meta}. Use 'elapsed_sec' or 'distance_km'.")
 
+        # Downsampling according to length of the run
+        n = len(x)
+        stride = math.ceil(n / MAX_POINTS)
+
+        down_x = []
+        down_y = []
+        for i in range(0,len(x),stride):
+            down_x.append(x[i])
+            down_y.append(y_series[i])
+
         # Paint the plot
         plot_widget = self.query_one(PlotextPlot)
         plt = plot_widget.plt
         plt.clear_figure()
-        plt.plot(x, y_series, label=f"{y_label} over {x_label}")
+        plt.plot(down_x, down_y, label=f"{y_label} over {x_label}")
         plt.title("Single Run Report")
         plot_widget.refresh()
 
