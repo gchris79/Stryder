@@ -12,5 +12,9 @@ ViewRuns #filters {
 }
 
 ViewRuns Input {
-    width: 50;
+    width: 38;
+}
+
+ViewRuns #submit {
+    margin: 0 1;
 }
