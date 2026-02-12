@@ -1,5 +1,6 @@
 import math
 import pandas as pd
+from textual import on
 from textual.containers import Container
 from textual_plotext import PlotextPlot
 from textual.app import ComposeResult
@@ -151,6 +152,10 @@ class SingleRunReport(Screen):
 
     def action_back(self):
         self.app.pop_screen()
+
+    @on(Button.Pressed, "#back")
+    async def _on_submit_pressed(self, event: Button.Pressed) -> None:
+        await self.run_action("back")
 
     def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
         if event.radio_set.id == "y_axis":

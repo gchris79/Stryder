@@ -3,12 +3,13 @@ from datetime import datetime
 from textual import on
 from textual.app import ComposeResult
 from textual.containers import Container
+from textual.getters import query_one
 from textual.screen import Screen
-from textual.widgets import Header, DataTable, Button, Footer, Label, Input
+from textual.widgets import Header, DataTable, Button, Footer, Label, Input, Placeholder
 
 from stryder_cli.cli_main import configure_connection
 from stryder_core.config import DB_PATH
-from stryder_core.date_utilities import resolve_tz
+from stryder_core.date_utilities import resolve_tz, to_utc
 from stryder_core.db_schema import connect_db
 from stryder_core.queries import views_query, fetch_views_page, count_rows_for_query
 from stryder_core.table_formatters import format_view_columns
@@ -27,7 +28,7 @@ class ViewRuns(Screen):
         self.mode = mode
 
         self.base_query = views_query()
-        self.base_params = None
+        self.base_params = ()
         self.keyword = ""
         self.start_date = ""
         self.end_date = datetime.now(resolve_tz(self.tz)).date()
@@ -35,7 +36,6 @@ class ViewRuns(Screen):
         self.page = 1
         self.page_size = 15
         self.total = 0
-
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -56,25 +56,25 @@ class ViewRuns(Screen):
             )
             yield Button(label="Submit", id="submit")
 
-        yield DataTable(id="run_view")
-        yield Button(label="Quit", id="quit")
-        yield Label("", id="page_label")
-        yield Label("", id="log")
+        with Container(id="table_wrapper"):
+            yield DataTable(id="run_view")
+        with Container(id="button_wrapper"):
+            yield Label("", id="page_label")
+            yield Label("", id="log")
+            yield Button(label="Back", id="back")
+
         yield Footer()
 
     BINDINGS = [
-        ("escape", "quit", "Quit to main menu"),
+        ("escape", "back", "Back to main menu"),
         ("p", "previous_page", "Go to previous page"),
         ("n", "next_page", "Go to next page"),
-        ("s", "submit_filters", "Submit filters"),
         ("r", "open_report", "Open single run report"),
     ]
 
     def on_mount(self):
 
         configure_connection(self.conn)
-
-        # TODO: later this can include date filter and base_params
 
         total_runs = count_rows_for_query(self.conn, self.base_query)
         self.total = (total_runs + self.page_size - 1) // self.page_size
@@ -160,90 +160,88 @@ class ViewRuns(Screen):
         self.app.push_screen(SingleRunReport(run_id, self.metrics, self.tz))
 
 
-    def action_quit(self) -> None:
+    def action_back(self) -> None:
         self.app.pop_screen()
 
-    @on(Button.Pressed, "#quit")
+    @on(Button.Pressed, "#back")
     async def _on_quit_pressed(self, event: Button.Pressed) -> None:
-        await self.run_action("quit")
-
-
-    # def on_input_submitted(self, event: Input.Submitted):
+        await self.run_action("back")
 
 
     def action_submit(self) -> None:
         # clearing params and keywords before starting the scan
-        date_params = ()
-        keyword_params = ()
+        where_clauses = []
+        params = []
         self.start_date = ""
         self.end_date = datetime.now(resolve_tz(self.tz)).date()
         self.keyword = ""
         self.base_query = views_query()
+        log = self.query_one("#log", Label)
+        log.update("")
 
+        input_start_date = self.query_one("#start_date", Input).value.strip()
+        input_end_date = self.query_one("#end_date", Input).value.strip()
+        input_keyword = self.query_one("#keyword", Input).value.strip()
 
-
-        input_start_date = self.query_one("#start_date", Input).value
-        input_end_date = self.query_one("#end_date", Input).value
-        input_keyword = self.query_one("#keyword", Input).value
-
-        if not input_start_date and not input_end_date and not input_keyword:
-            total_runs = count_rows_for_query(self.conn, self.base_query)
-            self.total = (total_runs + self.page_size - 1) // self.page_size
-            self.page = 1
-            self._paginate_runs(self.conn, self.base_query, self.mode, self.metrics, page=self.page, page_size=self.page_size)
-
-        else:
-            if input_keyword:
-                self.keyword = f"%{input_keyword}%"
-                keyword_params = (self.keyword, self.keyword)
-            if input_start_date:
+        if input_start_date and input_end_date:
+            try:
                 self.start_date = datetime.strptime(input_start_date, "%Y-%m-%d")
-                start_full = self.start_date.strftime("%Y-%m-%d 00:00:00")
-                if input_end_date:
-                    self.end_date = datetime.strptime(input_end_date, "%Y-%m-%d")
-                    end_full = self.end_date.strftime("%Y-%m-%d 00:00:00")
-                else:
-                    end_full = str(self.end_date)
-                date_params = (start_full, end_full)
+            except ValueError:
+                log = self.query_one("#log", Label)
+                log.update("!! Invalid date format.\nPlease use YYYY-MM-DD (e.g., 2025-09-24).")
+                return
 
-            elif input_end_date and not input_start_date:
+            start_full = self.start_date.strftime("%Y-%m-%d 00:00:00")
+            params.append(start_full, )
+            try:
                 self.end_date = datetime.strptime(input_end_date, "%Y-%m-%d")
-                end_full = self.end_date.strftime("%Y-%m-%d 00:00:00")
-                date_params = (end_full,)
+            except ValueError:
+                log = self.query_one("#log", Label)
+                log.update("!! Invalid date format. Please use YYYY-MM-DD (e.g., 2025-09-24).")
+                return
+            end_full = self.end_date.strftime("%Y-%m-%d 23:59:59")
+            params.append(end_full, )
+            where_clauses.append("r.datetime BETWEEN ? AND ?")
 
-            if len(date_params) == 1 and keyword_params:
-                self.base_query = views_query() + " WHERE (r.datetime <= ?) AND (w.workout_name LIKE ? OR wt.name LIKE ?)"
-                self.base_params = (date_params[0], keyword_params[0], keyword_params[1])
-            elif len(date_params) == 2 and keyword_params:
-                self.base_query = views_query() + " WHERE (r.datetime BETWEEN ? AND ?) AND (w.workout_name LIKE ? OR wt.name LIKE ?)"
-                self.base_params = (date_params[0], date_params[1], keyword_params[0], keyword_params[1])
-            elif len(date_params) == 1 and not keyword_params:
-                self.base_query = views_query() + " WHERE (r.datetime <= ?)"
-                self.base_params = (date_params[0],)
-            elif len(date_params) == 2 and not keyword_params:
-                self.base_query = views_query() + " WHERE (r.datetime BETWEEN ? AND ?)"
-                self.base_params = (date_params[0], date_params[1],)
-            elif keyword_params and not date_params:
-                self.base_query = views_query() + " WHERE (w.workout_name LIKE ? OR wt.name LIKE ?)"
-                self.base_params = (keyword_params[0], keyword_params[1])
+        elif input_start_date:
+            try:
+                self.start_date = datetime.strptime(input_start_date, "%Y-%m-%d")
+            except ValueError:
+                log = self.query_one("#log", Label)
+                log.update("!! Invalid date format. Please use YYYY-MM-DD (e.g., 2025-09-24).")
+                return
+            start_full = self.start_date.strftime("%Y-%m-%d 00:00:00")
+            params.append(start_full,)
+            where_clauses.append("r.datetime >= ?")
 
-            total_runs = count_rows_for_query(self.conn, self.base_query, self.base_params)
-            self.total = (total_runs + self.page_size - 1) // self.page_size
-            self.page = 1
-            self._paginate_runs(self.conn, self.base_query, self.mode, self.metrics, self.page, self.base_params,
-                                self.page_size)
+        elif input_end_date:
+            try:
+                self.end_date = datetime.strptime(input_end_date, "%Y-%m-%d")
+            except ValueError:
+                log = self.query_one("#log", Label)
+                log.update("!! Invalid date format. Please use YYYY-MM-DD (e.g., 2025-09-24).")
+                return
+            end_full = self.end_date.strftime("%Y-%m-%d 23:59:59")
+            params.append(end_full,)
+            where_clauses.append("r.datetime <= ?")
+
+        if input_keyword:
+            self.keyword = f"%{input_keyword}%"
+            params.extend([self.keyword, self.keyword])
+            where_clauses.append("(w.workout_name LIKE ? OR wt.name LIKE ?)")
+
+        self.base_query = views_query() + (" WHERE " + " AND ".join(where_clauses) if where_clauses else "")
+        self.base_params = tuple(params)
+
+        total_runs = count_rows_for_query(self.conn, self.base_query, self.base_params)
+        self.total = (total_runs + self.page_size - 1) // self.page_size
+        self.page = 1
+        self._paginate_runs(self.conn, self.base_query, self.mode, self.metrics, self.page, self.base_params,
+                            self.page_size)
 
         page_label = self.query_one("#page_label", Label)
         page_label.update(f"Page: {self.page} / {self.total}")
 
-
-
-
-
     @on(Button.Pressed, "#submit")
     async def _on_submit_pressed(self, event: Button.Pressed) -> None:
         await self.run_action("submit")
-
-
-# log = self.query_one("#log", Label)
-# log.update(f"self.end_date is: {self.end_date}")
