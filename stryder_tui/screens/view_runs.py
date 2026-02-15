@@ -3,13 +3,12 @@ from datetime import datetime
 from textual import on
 from textual.app import ComposeResult
 from textual.containers import Container
-from textual.getters import query_one
 from textual.screen import Screen
-from textual.widgets import Header, DataTable, Button, Footer, Label, Input, Placeholder
+from textual.widgets import Header, DataTable, Button, Footer, Label, Input
 
-from stryder_cli.cli_main import configure_connection
+from stryder_core.utils import configure_connection
 from stryder_core.config import DB_PATH
-from stryder_core.date_utilities import resolve_tz, to_utc
+from stryder_core.date_utilities import resolve_tz
 from stryder_core.db_schema import connect_db
 from stryder_core.queries import views_query, fetch_views_page, count_rows_for_query
 from stryder_core.table_formatters import format_view_columns
@@ -160,14 +159,6 @@ class ViewRuns(Screen):
         self.app.push_screen(SingleRunReport(run_id, self.metrics, self.tz))
 
 
-    def action_back(self) -> None:
-        self.app.pop_screen()
-
-    @on(Button.Pressed, "#back")
-    async def _on_quit_pressed(self, event: Button.Pressed) -> None:
-        await self.run_action("back")
-
-
     def action_submit(self) -> None:
         # clearing params and keywords before starting the scan
         where_clauses = []
@@ -245,3 +236,11 @@ class ViewRuns(Screen):
     @on(Button.Pressed, "#submit")
     async def _on_submit_pressed(self, event: Button.Pressed) -> None:
         await self.run_action("submit")
+
+
+    def action_back(self) -> None:
+        self.app.pop_screen()
+
+    @on(Button.Pressed, "#back")
+    async def _on_back_pressed(self, event: Button.Pressed) -> None:
+        await self.run_action("back")

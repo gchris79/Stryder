@@ -56,12 +56,6 @@ def weekly_table_fmt(weekly_raw:pd.DataFrame, metrics:dict) -> pd.DataFrame:
         if col in out.columns:
             out[col] = pd.to_numeric(out[col], errors="coerce")
 
-    ws = pd.to_datetime(out["week_start"], errors="coerce", utc=True)
-    we = pd.to_datetime(out["week_end"], errors="coerce", utc=True)
-
-    out["week_start"] = ws.dt.tz_convert(None)
-    out["week_end"] = we.dt.tz_convert(None)
-
     out["Week Start"] = out["week_start"].dt.strftime("%Y-%m-%d")
     out["Week End"] = out["week_end"].dt.strftime("%Y-%m-%d")
 

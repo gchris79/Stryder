@@ -1,7 +1,7 @@
 from typing import Literal
 
 from textual.app import App
-from stryder_cli.cli_main import configure_connection
+from stryder_core.utils import configure_connection
 from stryder_cli.cli_utils import MenuItem
 from stryder_core.bootstrap import bootstrap_context_core
 from stryder_core.config import DB_PATH
@@ -12,6 +12,7 @@ from stryder_tui.screens.choose_file_prompt import PathPicker
 from stryder_tui.screens.confirm_dialog import ConfirmDialog
 from stryder_tui.screens.import_progress import ImportProgress
 from stryder_tui.screens.menu_base import MenuBase
+from stryder_tui.screens.tui_reports import RunReports
 from stryder_tui.screens.tz_prompt import TzPrompt
 from stryder_tui.screens.view_runs import ViewRuns
 
@@ -102,6 +103,10 @@ class StryderTui(App):
     # View runs option
     def action_view_runs(self):
         self.push_screen(ViewRuns(self.metrics, "Europe/Athens"))
+
+    # Reports option
+    def action_run_reports(self):
+        self.push_screen(RunReports(self.metrics, "Europe/Athens"))
 
     # Reset Database option
     def action_reset_db(self):

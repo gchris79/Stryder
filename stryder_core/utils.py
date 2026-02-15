@@ -1,3 +1,5 @@
+import sqlite3
+
 import numpy as np
 import pandas as pd
 
@@ -20,3 +22,8 @@ def get_keys(keys):
     """ Return a list of headers """
     from stryder_core.metrics import METRICS_SPEC
     return [METRICS_SPEC[k]["label"] for k in keys]
+
+
+def configure_connection(conn: sqlite3.Connection) -> None:
+    """Call this once after opening the DB so rows are dict-like."""
+    conn.row_factory = sqlite3.Row

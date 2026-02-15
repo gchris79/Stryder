@@ -7,8 +7,8 @@ from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Header, DataTable, Button, Footer, Label, RadioSet, RadioButton
 
-from stryder_cli.cli_main import configure_connection
 from stryder_cli.visualizations import render_single_run_report
+from stryder_core.utils import configure_connection
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db
 from stryder_core.plot_core import X_AXIS_SPEC
@@ -71,7 +71,7 @@ class SingleRunReport(Screen):
 
         plt = self.query_one(PlotextPlot).plt
         plt.clear_figure()
-        self._refresh_plot()
+        self._refresh_plot_single()
 
 
     def load_single_run_summary(self, conn) -> None:
@@ -104,7 +104,7 @@ class SingleRunReport(Screen):
             return pressed.id
 
 
-    def _refresh_plot(self):
+    def _refresh_plot_single(self):
         y_series = self.samples[self.y_axis]    # y axis data
         y_meta = self.metrics[self.y_axis]      # y axis key
         y_label = y_meta["label"] + " " + y_meta["unit"]
@@ -145,6 +145,9 @@ class SingleRunReport(Screen):
         plot_widget = self.query_one(PlotextPlot)
         plt = plot_widget.plt
         plt.clear_figure()
+        max_y = max(down_y)
+        upper = max_y * 1.1  # 10% headroom
+        plt.ylim(0, upper)
         plt.plot(down_x, down_y, label=f"{y_label} over {x_label}")
         plt.title("Single Run Report")
         plot_widget.refresh()
@@ -162,5 +165,4 @@ class SingleRunReport(Screen):
             self.y_axis = event.pressed.id
         elif event.radio_set.id == "x_axis":
             self.x_axis = event.pressed.id
-
-        self._refresh_plot()
+        self._refresh_plot_single()

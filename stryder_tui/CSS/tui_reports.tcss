@@ -1,0 +1,42 @@
+RunReports {
+    layout: vertical;
+    height: 100%;
+}
+
+RunReports #filters {
+    layout: horizontal;
+    height: 3;
+    width: 100%;
+    align: center top;
+    margin: 1 0;
+}
+
+RunReports Input {
+    width: 38;
+}
+
+RunReports #submit {
+    margin: 0 1;
+}
+
+RunReports #table_wrapper {
+    max-height: 13;
+    margin: 1 0;
+    width: 100%;
+    align:center top;
+}
+
+RunReports DataTable {
+    width:auto;
+}
+
+RunReports #plot_panel {
+    layout: horizontal;
+    height: 1fr;
+}
+
+RunReports #y_axis {
+    layout: vertical;
+    width: 20;
+    height: 100%;
+}

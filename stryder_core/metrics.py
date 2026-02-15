@@ -28,7 +28,7 @@ METRICS_SPEC : dict[str ,MetricInfo] = {
     "vo":           {"key": "vertical_oscillation", "label": "Vert. Oscillation",   "unit": "cm",       "formatter": "vo",          "plottable_single": True},
     "distance":     {"key": "distance_m",           "label": "Distance",            "unit": "m",        "formatter": "distance"},
     "distance_km":  {"key": "distance_km",          "label": "Distance",            "unit": "km",       "formatter": "distance"},
-    "avg_hr":       {"key": "avg_hr",               "label": "Avg HR",              "unit": "bpm",      "formatter": "avg_hr"}
+    "avg_hr":       {"key": "avg_hr",               "label": "Avg HR",              "unit": "bpm",      "formatter": "avg_hr"},
 
 }
 

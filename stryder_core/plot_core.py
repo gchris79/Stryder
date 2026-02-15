@@ -11,11 +11,17 @@ from stryder_core.utils_formatting import fmt_hm, fmt_pace_no_unit
 from stryder_core.utils import calc_df_to_pace
 
 
+Y_AXIS_SPEC = {
+    "distance_km": {"label": "Distance", "unit": "(km)"},
+    "duration_sec": {"label": "Duration", "unit": "(min)"},
+    "avg_power": {"label": "Avg Power", "unit": "(W/kg)"},
+    "avg_hr": {"label": "Avg HR.", "unit": "(bpm)"},
+}
+
 X_AXIS_SPEC = {
     "elapsed_sec": {"label": "Duration", "unit": "(h:m)"},
     "distance_km": {"label": "Distance", "unit": "(km)"}
 }
-
 
 def plot_distance_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
     """ Wrapper for plotting weekly distance over time """

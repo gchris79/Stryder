@@ -1,4 +1,3 @@
-import sqlite3
 from pathlib import Path
 import logging
 import sys
@@ -7,6 +6,7 @@ from stryder_core.import_runs import single_process_stryd_file, batch_process_st
 from stryder_cli.cli_unparsed import find_unparsed_cli
 from stryder_core.pipeline import insert_full_run
 from stryder_core.runtime_context import set_context
+from stryder_core.utils import configure_connection
 from stryder_core.version import get_git_version
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, init_db
@@ -71,11 +71,6 @@ def bootstrap_defaults_interactive() -> dict[str, Path]:
     set_context(tz_str=tz_str, tzinfo=tzinfo, stryd_path=stryd, garmin_file=garmin)
 
     return resolved
-
-
-def configure_connection(conn: sqlite3.Connection) -> None:
-    """Call this once after opening the DB so rows are dict-like."""
-    conn.row_factory = sqlite3.Row
 
 
 def configure_logging():
