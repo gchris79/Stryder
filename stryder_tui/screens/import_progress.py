@@ -140,12 +140,16 @@ class ImportProgress(Screen):
 
     def _advance_to_next_file(self) -> None:
         """Move to the next unparsed file and refresh the UI."""
+        if self.review_mode == "none":
+            return
         self.unparsed_index += 1
         self.review_mode = "unparsed"
         self._show_current_unparsed_file()
 
     def _handle_no_garmin_decision(self, choice: str):
-        file = self.unparsed_files[self.unparsed_index]
+        file = self.current_file
+        if not file:
+            return
         log = self.query_one("#log", RichLog)
 
         if choice == "parse":
@@ -174,7 +178,9 @@ class ImportProgress(Screen):
         label_file = self.query_one("#panel_file", Label)
         label_tz = self.query_one("#panel_tz", Label)
         label_keys = self.query_one("#panel_keys", Label)
-        file = self.unparsed_files[self.unparsed_index]
+        file = self.current_file
+        if not file:
+            return
 
         label_file.update(f"\nFile: {file.name}")
         label_tz.update(f"Timezone: {self.tz}")
@@ -189,6 +195,11 @@ class ImportProgress(Screen):
         else:
             label_keys.update("\nKeys:\n(Esc) Exit to main menu")
 
+    @property
+    def current_file(self):
+        if self.unparsed_index >= len(self.unparsed_files):
+            return None
+        return self.unparsed_files[self.unparsed_index]
 
     def _show_current_unparsed_file(self):
         log = self.query_one("#log", RichLog)
@@ -197,15 +208,20 @@ class ImportProgress(Screen):
             log.write(f"Parsed during review: {self.unparsed_parsed_count}")
             log.write(f"Skipped during review: {self.unparsed_skipped_count}")
             self.import_done = True
+            self.review_mode = "none"
             return
         else:
-            file = self.unparsed_files[self.unparsed_index]
+            file = self.current_file
+            if not file:
+                return
             log.write(f"Next file to review ({self.unparsed_index + 1}/{len(self.unparsed_files)}): {file.name}")
             self._update_review_panel_for_current_file()
 
 
     def _handle_unparsed_status(self):
-        file = self.unparsed_files[self.unparsed_index]
+        file = self.current_file
+        if not file:
+            return
         log = self.query_one("#log", RichLog)
 
         if self.run["status"] == "ok":
@@ -247,7 +263,9 @@ class ImportProgress(Screen):
 
     def _handle_tz_response(self, tz:str) -> None:
         log = self.query_one("#log", RichLog)
-        file = self.unparsed_files[self.unparsed_index]
+        file = self.current_file
+        if not file:
+            return
         if tz is None:
             label = self.query_one("#panel_header", Label)
             label.update(f"Please choose a valid timezone")
@@ -263,7 +281,9 @@ class ImportProgress(Screen):
 
 
     def _handle_unparsed_decision(self, choice: str):
-        file = self.unparsed_files[self.unparsed_index]
+        file = self.current_file
+        if not file:
+            return
         log = self.query_one("#log", RichLog)
 
         if choice == "parse":
@@ -336,6 +356,8 @@ class ImportProgress(Screen):
 
 
     def action_parse_file(self) -> None:
+        if self.import_done:
+            return
         if self.review_mode == "unparsed":
             self._handle_unparsed_decision(choice="parse")
         elif self.review_mode == "no_garmin":
@@ -343,6 +365,8 @@ class ImportProgress(Screen):
 
 
     def action_skip_file(self) -> None:
+        if self.import_done:
+            return
         if self.review_mode == "unparsed":
             self._handle_unparsed_decision(choice="skip")
         elif self.review_mode == "no_garmin":

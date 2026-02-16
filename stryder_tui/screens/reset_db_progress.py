@@ -1,7 +1,6 @@
 from textual.containers import Container
 from textual.screen import ModalScreen
 from textual.widgets import LoadingIndicator, Label
-from textual.worker import Worker
 
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, wipe_all_data
