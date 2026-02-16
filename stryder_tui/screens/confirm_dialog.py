@@ -25,8 +25,8 @@ class ConfirmDialog(Screen):
         yield Footer()
 
     BINDINGS = [
-        ("y", "confirm_yes", "Yes"),
-        ("n", "confirm_no", "No"),
+        ("space", "confirm_yes", "Yes"),
+        ("escape", "confirm_no", "No"),
     ]
 
     def action_confirm_yes(self) -> None:

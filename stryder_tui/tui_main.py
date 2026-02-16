@@ -12,6 +12,7 @@ from stryder_tui.screens.choose_file_prompt import PathPicker
 from stryder_tui.screens.confirm_dialog import ConfirmDialog
 from stryder_tui.screens.import_progress import ImportProgress
 from stryder_tui.screens.menu_base import MenuBase
+from stryder_tui.screens.reset_db_progress import ResetDBProgress
 from stryder_tui.screens.tui_reports import RunReports
 from stryder_tui.screens.tz_prompt import TzPrompt
 from stryder_tui.screens.view_runs import ViewRuns
@@ -117,7 +118,8 @@ class StryderTui(App):
 
     def _handle_reset_response(self, confirmed: bool) -> None:
         if confirmed:
-            wipe_all_data(self.conn)
+            self.push_screen(ResetDBProgress())
+
 
 
     # Quit option

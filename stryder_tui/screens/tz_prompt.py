@@ -22,13 +22,13 @@ class TzPrompt(Screen):
                     yield RadioButton(tz,value=(tz == default_tz))
 
             with Container(id="buttons"):
-                yield Button("(S)ave", id="save")
-                yield Button("(B)ack", id="back")
+                yield Button("Save", id="save")
+                yield Button("Back", id="back")
         yield Footer()
 
     BINDINGS = [
-        ("s", "save", "Save"),
-        ("b", "back", "Back"),
+        ("space", "save", "Save"),
+        ("escape", "back", "Back"),
     ]
 
     def action_save(self) -> None:

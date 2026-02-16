@@ -6,11 +6,9 @@ ImportProgress {
 ImportProgress #screen_wrapper {
     layout: vertical;
     width: 70;
-    height: 1fr;
 }
 
 ImportProgress #log {
-    height: 1fr;
     padding: 1 2;
     border: round $secondary;
 }

@@ -1,0 +1,17 @@
+ResetDBProgress {
+    align: center middle;
+}
+
+ResetDBProgress #reset_wrapper {
+    width: 60;
+    height: 15;
+    padding: 2;
+    background: gray;
+}
+
+ResetDBProgress #question {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    margin-bottom: 1;
+}

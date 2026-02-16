@@ -23,13 +23,13 @@ class PathPicker(Screen):
             yield Label(self.question, id="question")
             yield DirectoryTree("./", id="dir_tree")
             with Container(id="buttons"):
-                yield Button("(O)k", id="ok", disabled=True)
-                yield Button("(B)ack", id="back")
+                yield Button("Ok", id="ok", disabled=True)
+                yield Button("Back", id="back")
         yield Footer()
 
     BINDINGS = [
-        ("o", "ok", "(O)k"),
-        ("b", "back", "(B)ack"),
+        ("space", "ok", "Ok"),
+        ("escape", "back", "Back"),
     ]
 
     def check_valid_path(self, mode: Literal["file","file_dir"], candidate:Path) -> bool:

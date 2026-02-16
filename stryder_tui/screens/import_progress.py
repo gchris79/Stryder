@@ -30,7 +30,7 @@ class ImportFinished(Message):
 
 class ImportProgress(Screen):
 
-    CSS_PATH = "../CSS/single_run_report.tcss"
+    CSS_PATH = "../CSS/import_progress.tcss"
 
     def __init__(self, stryd_path: str, garmin_file: str, tz: str,
                  mode : Literal["import", "unparsed"],) -> None:
@@ -60,14 +60,14 @@ class ImportProgress(Screen):
                 yield Label("", id="panel_tz")
                 yield Label("", id="panel_keys")
             with Container(id="buttons"):
-                yield Button(label= "(Q)uit", id="quit")
+                yield Button(label= "Quit", id="quit")
         yield Footer()
 
     BINDINGS = [
         ("p", "parse_file", "Parse"),
         ("s", "skip_file", "Skip"),
         ("z", "tz_change", "Change timezone"),
-        ("q", "quit", "Quit"),
+        ("escape", "quit", "Quit"),
     ]
 
     def on_mount(self):
@@ -181,13 +181,13 @@ class ImportProgress(Screen):
 
         if self.review_mode == "unparsed":
             label_header.update("Review unparsed run")
-            label_keys.update("\nKeys:\n(p) Parse with Garmin (s) Skip (q) Exit")
+            label_keys.update("\nKeys:\n(p) Parse with Garmin (s) Skip (Esc) Exit")
 
         elif self.review_mode == "no_garmin":
             label_header.update("Review unparsed run - No Garmin match")
             label_keys.update("\nKeys:\n(p) Parse without Garmin (z) Change TZ (s) Skip")
         else:
-            label_keys.update("\nKeys:\n(q) Exit to main menu")
+            label_keys.update("\nKeys:\n(Esc) Exit to main menu")
 
 
     def _show_current_unparsed_file(self):

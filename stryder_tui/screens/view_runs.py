@@ -68,7 +68,7 @@ class ViewRuns(Screen):
         ("escape", "back", "Back to main menu"),
         ("p", "previous_page", "Go to previous page"),
         ("n", "next_page", "Go to next page"),
-        ("r", "open_report", "Open single run report"),
+        ("space", "open_report", "Open single run report"),
     ]
 
     def on_mount(self):
