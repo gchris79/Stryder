@@ -63,7 +63,7 @@ Visualize your training load with selectable axes.
 
 ### Parse csv files and view reports
 Easily parse your csv Stryd run files and then quick view them without leaving the terminal.
-<video src="assets/tui_demo.mp4" controls width="950"><video>
+![▶ Watch Demo (v1.8.0)](https://github.com/gchris79/Stryder/releases/download/v1.8.0/tui_demo.mp4)
 
 ---
 
