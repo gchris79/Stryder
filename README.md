@@ -1,226 +1,236 @@
 # Stryder 🏃‍♂️  
-### Local Running Data Analysis — CLI & Web Viewer
+### Local Running Data Analysis — TUI & Web Viewer
 
-Stryder is a local-first running data analysis project built around **Stryd and Garmin CSV exports**.
+Stryder is a modular, local-first running data management system built around **Stryd and Garmin CSV exports**.
 
-It is designed with a clear separation of concerns:
+It provides multiple interfaces on top of the same shared core:
 
 - **Stryder Core** handles parsing, matching, normalization, and metrics.
-- **Stryder CLI** is responsible for importing data and generating reports.
-- **Stryder Web** (Django) provides a read-only web viewer on top of the same database.
+- **Stryder TUI** (Textual) provides a full-screen interactive terminal interface.
+- **Stryder Web** (Django) provides a read-only web viewer on the same database.
 
-The goal of Stryder is not to replace commercial platforms, but to give runners **full ownership and transparency** over their training data while serving as a learning project in Python and software architecture.
+Stryder is designed both as a personal analytics tool and as a software architecture learning project focused on modular design and multi-interface systems.
 
 ---
 
-## 🧱 Architecture Overview
+# 🧱 Architecture Overview
 
 Stryder is structured as a multi-layer application:
 
-### 🧠 Stryder Core
+## 🧠 Stryder Core
 - Shared business logic used by all interfaces
 - CSV parsing and normalization
-- Timezone-aware Garmin ↔ Stryd matching
+- Timezone-aware Garmin ↔ Stryd matching (±60s tolerance)
 - Canonical metrics and summaries
 - SQLite database schema
 
-### ⌨️ Stryder CLI
-- Primary entry point for data import
-- Batch and single-run processing
-- Weekly and custom summaries
-- CLI tables and exported plots
+## 🖥️ Stryder TUI (Textual)
+- Interactive terminal-based UI built with Textual
+- Async import workflow with live progress
+- Integrated find-unparsed review flow
+- DataTable-based run navigation with pagination
+- Terminal graph visualizations (plotext)
+- Non-blocking background workers
 
-### 🌐 Stryder Web (Django)
+## 🌐 Stryder Web (Django)
 - Local web viewer running on Django
-- Single run detailed reports with graphs
+- Single run detailed reports with interactive graphs
 - Custom date range reports
-- Interactive axis selection
+- User-selectable X/Y axes
 - Read-only by design (no imports via web)
 
-The CLI and Web interface operate on the **same SQLite database**, ensuring consistency across views.
+All interfaces operate on the **same SQLite database**, ensuring consistency across views.
 
 ---
 
-## 📽️ Demo (Django views)
+# 📽️ Demo (Web Viewer)
 
 ### 1. Custom range run view
-View your stored runs filtering them by custom dates or/and keywords.
+View your stored runs filtering them by custom dates or keywords.
 
 ![Custom range run view](assets/dashboard-view.jpg)
 
 ---
 
 ### 2. Single run summary view
-Visualize your training load with plots using selectable axes.
+Visualize your training load with selectable axes.
 
 ![Single Run Summary View](assets/single-run-sum.jpg)
 
+---
+
+# 📽️ Demo (TUI)
+
+### Parse csv files and view reports
+Easily parse your csv Stryd run files and then quick view them without leaving the terminal.
+<video src="assets/tui_demo.mp4" controls width="950"><video>
 
 ---
 
----
-## 📽️ Demo (CLI)
+# ✨ Features
 
-### 1. Weekly & Rolling Reports
-Generate weekly reports with distance, avg HR, power, and duration.
-
-<img src="assets/reports_demo.gif" width="700">
-
----
-
-### 2. Visual Reports
-Visualize your training load with automatic plots.
-
-![Weekly Plot](assets/weekly_plot.png)
-
----
-
-### 3. Detailed Views
-Inspect any run in detail with normalized workout names, timestamps, and metrics.
-
-<img src="assets/run_view.png" width="700">
-
----
-
-## ✨ Features
-
-### Core
+## Core
 - Timezone-aware Stryd ↔ Garmin matching (±60s tolerance)
+- Canonical metrics system (distance_km, avg_power, etc.)
 - Normalized workout naming
-- Canonical metrics and summaries
 - Local SQLite storage
 
-### CLI
-- Interactive menu-based interface
-- Batch import of Stryd CSV files
-- Garmin activity matching
-- Weekly and custom summaries
-- Single-run detailed reports
-- Exportable visual charts
+## TUI
+- Full-screen interactive terminal interface
+- Background worker-based imports
+- Integrated unmatched-run review workflow
+- Paginated run views
+- Terminal graph visualizations
 
-### Web
+## Web
 - Single run detailed reports
 - Custom date range analysis
 - Interactive X/Y axis selection
-- Clean, page-based layout
+- Clean page-based layout
 
 ---
 
-## 📄 Files You Need
+# 📄 Files You Need
 
-Before using Stryder, make sure you have the following:
+Before using Stryder, make sure you have:
 
-### ✅ Stryd CSV Files
+## ✅ Stryd CSV Files
 
-These are your **detailed per-run files**, exported from Stryd PowerCenter or the mobile app. Each file contains second-by-second metrics such as pace, power, cadence, etc.
+Detailed per-run CSV files exported from Stryd PowerCenter or the mobile app.
 
-🗂 Export them in **bulk** and place them all in a folder. Each file typically has a long numeric filename, like:
+Each file contains second-by-second metrics (pace, power, cadence, etc.).
 
-5059274362093568.csv,
-5073428460371968.csv
+Export them in bulk and place them in a folder.
 
-💡 You’ll be prompted to select this folder during batch import.
+Example filenames:
 
+```
+5059274362093568.csv  
+5073428460371968.csv  
+```
+---
 
-### ✅ Garmin CSV Export
+## ✅ Garmin CSV Export
 
-This is a **single CSV file** containing summary data for your Garmin runs — one row per workout — with columns like start time, duration, and distance.
+A single CSV file containing summary data for your Garmin runs.
 
-To download it:
-1. Visit [Garmin Connect](https://connect.garmin.com/)
-2. Go to your activities list
-3. Export all (or running-only) activities as a `.csv` file
+To download:
 
-It will be named something like:
+1. Visit https://connect.garmin.com/  
+2. Go to Activities  
+3. Export all (or running-only) activities as `.csv`
 
- activities.csv
+Example filename:
 
-💡 This is the file you'll be prompted to provide as the "Garmin file."
+```
+activities.csv 
+``` 
+
+⚠️ Stryder matches runs using start timestamps with timezone-aware comparison and a ±60 second tolerance.
 
 ---
 
-⚠️ The app uses the **start time** from each Stryd file to match it with the correct Garmin run. The match is made using timezone-aware comparison with a ±60 second tolerance.
+# 🧪 Demo Data (Included)
+
+For quick testing, the repository includes example files:
+
+- assets/stryd/ → Sample Stryd per-run CSV files  
+- assets/garmin/ → Matching Garmin activities CSV  
+
+You can use these to test the full import and reporting pipeline without exporting your own data.
+
+Simply point Stryder to these paths during import.
 
 ---
 
-## ▶️ Getting Started
+# ▶️ Getting Started
 
-### 1️⃣ Install dependencies
-```bash
+## 1️⃣ Install dependencies
+
+```
 pip install -r requirements.txt
 ```
-### 2️⃣ Run the CLI (data import & reports)
-```bash
-python -m stryder_cli.cli_main
-```
-The CLI is responsible for:
-- Importing Stryd and Garmin CSV files
-- Building the local SQLite database
-- Generating CLI-based reports
+---
 
-### 3️⃣ Run the Web Viewer
-```bash
+## 2️⃣ Run the Textual TUI (Recommended)
+```
+python -m stryder_tui
+```
+The TUI allows you to:
+
+- Import Stryd and Garmin CSV files
+- Review unmatched runs
+- View reports and summaries
+- Navigate runs interactively
+
+---
+
+## 3️⃣ Run the Web Viewer
+```
 python manage.py runserver
 ```
 The web interface:
+
 - Reads from the same SQLite database
 - Provides interactive visual reports
-- Does not modify or import data
+- Does not import or modify data
 
 ---
 
-## 🛠 Tech Stack
+# 🧩 CLI Status
 
-### Core
+A legacy menu-based CLI is still included in the repository but is not the recommended interface in v1.8.
+
+Stryder is currently **TUI-first**.
+
+The CLI will be redesigned as a true command-driven interface in a future major release.
+
+---
+
+# 🛠 Tech Stack
+
+## Core
 - Python 3.11
 - SQLite
 - Pandas
 
-### CLI
-- Matplotlib
-- Tabulate
+## TUI
+- Textual
+- Plotext
 
-### Web
+## Web
 - Django
 - HTML / CSS (Django templates)
 - Matplotlib (server-side rendering)
 
-The same SQLite database and core logic are shared between the CLI and Web interfaces.
+All interfaces share the same database and core logic.
 
 ---
 
-## 🧭 Roadmap
+# 🧭 Roadmap
 
-These are planned or possible features for future versions of Stryder:
-
-- [x] Basic CLI with Stryd + Garmin import
-- [x] Timezone prompt and matching tolerance
-- [x] Skipping unmatched runs for later review
-- [x] Store last-used file paths
-- [x] Add CLI commands for viewing runs and summaries
-- [x] Weekly/monthly mileage summaries
-- [x] Graphs: power, distance, duration and HR over time 
-- [x] Web Viewer (Django)
-
-- [ ] Text-based UI (Textual) as an optional interface on top of Stryder Core
+- [x] CLI import & summaries
+- [x] Canonical metrics refactor
+- [x] Web viewer (Django)
+- [x] Textual TUI interface
+- [ ] Redesign CLI as command-driven interface (v2.0)
 - [ ] Advanced run comparisons
-- [ ] Weekly / monthly / yearly presets in the web interface
-- [ ] Segment-based analysis within runs
+- [ ] Segment-based analysis
 - [ ] Export filtered data to CSV
 - [ ] Support FIT / TCX / GPX parsing
 
-## 👤 Author
-Giorgos Chrysopoulos
+---
 
-Junior Python Developer & Hobbyist Runner
+# 👤 Author
 
-🔗 [LinkedIn](https://www.linkedin.com/in/giorgos-chrisopoulos-277989374/)
+Giorgos Chrysopoulos  
+Junior Python Developer & Hobbyist Runner  
+
+🔗 LinkedIn: https://www.linkedin.com/in/giorgos-chrisopoulos-277989374/
 
 💡 Want to contribute? Open an issue or fork the repo!
 
 ---
 
-## 📃 License
-MIT License — see the [LICENSE](LICENSE) file.
-
-
+# 📃 License
+MIT License — see the LICENSE file.

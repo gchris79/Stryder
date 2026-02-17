@@ -4,6 +4,29 @@ All notable changes to **Stryder** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),  
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ---
+
+## [1.8.0] – 2026-02-16
+### 🎯 New: Textual TUI Interface
+
+- Introduced full Textual-based Terminal UI (TUI).
+- Interactive import workflow with progress screen.
+- Integrated `find-unparsed` review inside TUI.
+- DataTable-based run views with pagination.
+- Terminal graph visualizations using plotext.
+- Dedicated TUI entry point (`stryder_tui`).
+
+### Improved
+- Non-blocking import operations using background workers.
+- Cleaner navigation between screens.
+- Safer input handling inside TUI forms.
+- Clear separation between CLI and TUI execution modes.
+
+### Internal
+- Refactored import pipeline to support async UI execution.
+- UI layer reorganized around screens and event handlers.
+- Reduced duplication between CLI and TUI logic.
+
+---
 ## [1.7.0] - 2025-12-27
 ### 🌐 Stryder Web (Django) – Initial Viewer Release
 

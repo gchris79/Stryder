@@ -20,8 +20,8 @@ ViewRuns #submit {
 }
 
 ViewRuns #table_wrapper {
+    layout: vertical;
     height: auto;
-    margin: 1 0;
     width: 100%;
     align:center top;
 }
@@ -30,13 +30,16 @@ ViewRuns DataTable {
     width:auto;
 }
 
-ViewRuns #button_wrapper {
-    layout: grid;
-    grid-size: 3 1;
-    grid-columns: 1fr 5fr 1fr;
-    margin: 0 16;
+ViewRuns #panel_wrapper {
+    align: center top;
+    margin: 1 0;
 }
 
-ViewRuns #log {
-    margin: 0 5;
+ViewRuns #panel {
+    layout: horizontal;
+    width: 110;
+}
+
+ViewRuns #log_label {
+    margin: 0 8;
 }

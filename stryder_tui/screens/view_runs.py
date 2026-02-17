@@ -57,10 +57,12 @@ class ViewRuns(Screen):
 
         with Container(id="table_wrapper"):
             yield DataTable(id="run_view")
-        with Container(id="button_wrapper"):
-            yield Label("", id="page_label")
-            yield Label("", id="log")
-            yield Button(label="Back", id="back")
+        with Container(id="panel_wrapper"):
+            with Container(id="panel"):
+                yield Label("", id="page_label")
+                with Container(id="log"):
+                    yield Label("", id="log_label")
+                yield Button(label="Back", id="back")
 
         yield Footer()
 
@@ -156,6 +158,9 @@ class ViewRuns(Screen):
         row_values = table.get_row_at(row_index)
         run_id = int(row_values[0])
 
+        log = self.query_one("#log_label", Label)
+        log.update("")
+
         self.app.push_screen(SingleRunReport(run_id, self.metrics, self.tz))
 
 
@@ -167,7 +172,7 @@ class ViewRuns(Screen):
         self.end_date = datetime.now(resolve_tz(self.tz)).date()
         self.keyword = ""
         self.base_query = views_query()
-        log = self.query_one("#log", Label)
+        log = self.query_one("#log_label", Label)
         log.update("")
 
         input_start_date = self.query_one("#start_date", Input).value.strip()
@@ -178,7 +183,7 @@ class ViewRuns(Screen):
             try:
                 self.start_date = datetime.strptime(input_start_date, "%Y-%m-%d")
             except ValueError:
-                log = self.query_one("#log", Label)
+                log = self.query_one("#log_label", Label)
                 log.update("!! Invalid date format.\nPlease use YYYY-MM-DD (e.g., 2025-09-24).")
                 return
 
@@ -187,7 +192,7 @@ class ViewRuns(Screen):
             try:
                 self.end_date = datetime.strptime(input_end_date, "%Y-%m-%d")
             except ValueError:
-                log = self.query_one("#log", Label)
+                log = self.query_one("#log_label", Label)
                 log.update("!! Invalid date format. Please use YYYY-MM-DD (e.g., 2025-09-24).")
                 return
             end_full = self.end_date.strftime("%Y-%m-%d 23:59:59")
@@ -198,7 +203,7 @@ class ViewRuns(Screen):
             try:
                 self.start_date = datetime.strptime(input_start_date, "%Y-%m-%d")
             except ValueError:
-                log = self.query_one("#log", Label)
+                log = self.query_one("#log_label", Label)
                 log.update("!! Invalid date format. Please use YYYY-MM-DD (e.g., 2025-09-24).")
                 return
             start_full = self.start_date.strftime("%Y-%m-%d 00:00:00")
@@ -209,7 +214,7 @@ class ViewRuns(Screen):
             try:
                 self.end_date = datetime.strptime(input_end_date, "%Y-%m-%d")
             except ValueError:
-                log = self.query_one("#log", Label)
+                log = self.query_one("#log_label", Label)
                 log.update("!! Invalid date format. Please use YYYY-MM-DD (e.g., 2025-09-24).")
                 return
             end_full = self.end_date.strftime("%Y-%m-%d 23:59:59")
