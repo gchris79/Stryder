@@ -43,6 +43,13 @@ All interfaces operate on the **same SQLite database**, ensuring consistency acr
 
 ---
 
+# 📽️ TUI Demo
+
+▶ Watch 1 minute demo:
+**https://youtu.be/VWjr1V5QczQ**
+
+---
+
 # 📽️ Demo (Web Viewer)
 
 ### 1. Custom range run view
@@ -56,14 +63,6 @@ View your stored runs filtering them by custom dates or keywords.
 Visualize your training load with selectable axes.
 
 ![Single Run Summary View](assets/single-run-sum.jpg)
-
----
-
-# 📽️ Demo (TUI)
-
-### Parse csv files and view reports
-Easily parse your csv Stryd run files and then quick view them without leaving the terminal.
-![▶ Watch Demo (v1.8.0)](https://github.com/gchris79/Stryder/releases/download/v1.8.0/tui_demo.mp4)
 
 ---
 
