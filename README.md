@@ -14,6 +14,7 @@ Stryder is designed both as a personal analytics tool and as a software architec
 ---
 
 # 🧱 Architecture Overview
+![Stryder's Architecture](assets/stryder_diagram.jpg)
 
 Stryder is structured as a multi-layer application:
 
