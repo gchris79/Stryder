@@ -5,9 +5,10 @@ from stryder_core.utils import configure_connection
 from stryder_cli.cli_utils import MenuItem
 from stryder_core.bootstrap import bootstrap_context_core
 from stryder_core.config import DB_PATH
-from stryder_core.db_schema import connect_db, wipe_all_data, init_db
+from stryder_core.db_schema import connect_db, init_db
 from stryder_core.metrics import build_metrics
 from stryder_core.path_memory import load_json, CONFIG_PATH
+
 from stryder_tui.screens.choose_file_prompt import PathPicker
 from stryder_tui.screens.confirm_dialog import ConfirmDialog
 from stryder_tui.screens.import_progress import ImportProgress
@@ -126,7 +127,5 @@ class StryderTui(App):
     def action_quit(self):
         self.exit()
 
-
-if __name__ == "__main__":
-    app = StryderTui()
-    app.run()
+def main():
+    StryderTui().run()

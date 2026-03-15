@@ -145,10 +145,16 @@ Simply point Stryder to these paths during import.
 
 # ▶️ Getting Started
 
-## 1️⃣ Install dependencies
+## Requirements
+- Python 3.11
+
+## 1️⃣ Setup
 
 ```
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 ---
 
@@ -174,6 +180,14 @@ The web interface:
 - Reads from the same SQLite database
 - Provides interactive visual reports
 - Does not import or modify data
+
+---
+## Troubleshooting
+
+If the TUI fails to start, verify:
+- Python 3.11 is being used
+- the virtual environment is activated
+- dependencies were installed from requirements.txt
 
 ---
 

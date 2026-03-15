@@ -3,6 +3,8 @@ from textual import on
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Header, ListView, Footer, Label, ListItem
+from textual.events import Key
+
 from stryder_cli.cli_utils import MenuItem
 
 
@@ -24,7 +26,7 @@ class MenuBase(Screen):
                 yield list_item
         yield Footer()
 
-    async def on_key(self, event):
+    async def on_key(self, event: Key) -> None:
         for item in self.items:
             if event.key == item.key:
                 await self._handle_menu_action(item)

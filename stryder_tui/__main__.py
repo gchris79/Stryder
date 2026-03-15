@@ -1,4 +1,4 @@
-from .tui_main import StryderTui
+from .tui_main import main
 
 if __name__ == "__main__":
-    StryderTui().run()
+    main()

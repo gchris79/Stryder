@@ -73,7 +73,7 @@ class ViewRuns(Screen):
         ("space", "open_report", "Open single run report"),
     ]
 
-    def on_mount(self):
+    def on_mount(self) -> None:
 
         configure_connection(self.conn)
 
@@ -123,7 +123,7 @@ class ViewRuns(Screen):
             table.move_cursor(row=0, column=0)
 
 
-    def action_previous_page(self):
+    def action_previous_page(self) -> None:
         if self.page == 1:
             return
 
@@ -136,7 +136,7 @@ class ViewRuns(Screen):
         page_label.update(f"Page: {self.page} / {self.total}")
 
 
-    def action_next_page(self):
+    def action_next_page(self) -> None:
         if self.page == self.total:
             return
 
@@ -149,7 +149,7 @@ class ViewRuns(Screen):
         page_label.update(f"Page: {self.page} / {self.total}")
 
 
-    def action_open_report(self):
+    def action_open_report(self) -> None:
         table = self.query_one("#run_view",DataTable)
         if table.cursor_row is None:
             return

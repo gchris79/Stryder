@@ -7,6 +7,7 @@ from textual.containers import Container
 from textual.message import Message
 from textual.screen import Screen
 from textual.widgets import Header, Footer, RichLog, Button, Label
+
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db
 from stryder_core.find_unparsed_runs import find_unparsed_files
