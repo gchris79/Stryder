@@ -81,7 +81,7 @@ DATABASES = {
 }
 
 # take CONFIG_PATH already in core
-CONFIG_PATH = "/media/gchr/Data/PyCharm Projects/Stryder/stryder_core/last_used_paths.json"
+CONFIG_PATH = "/media/gchr/Data/PyCharm Projects/Stryder/stryder_core/profiles.json"
 
 with open(CONFIG_PATH) as f:
     core_config = json.load(f)

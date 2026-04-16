@@ -11,7 +11,7 @@ from stryder_core.version import get_git_version
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, init_db
 from stryder_cli.reset_db import reset_db
-from stryder_core.path_memory import REQUIRED_PATHS, CONFIG_PATH, save_json, load_json
+from stryder_core.profile_memory import REQUIRED_PATHS, CONFIG_PATH, save_json, load_json
 from stryder_cli.prompts import prompt_valid_path, prompt_for_timezone, ensure_default_timezone
 
 
@@ -35,7 +35,7 @@ _configure_matplotlib_backend()
 
 def bootstrap_defaults_interactive() -> dict[str, Path]:
     """
-    - Loads last used paths from ~/.stryder/last_used_paths.json
+    - Loads last used paths from ~/.stryder/profiles.json
     - Validates them; if missing/invalid, prompts once and resaves
     - Resolves timezone via helper (no tz stored here)
     - Sets runtime_context with tz + paths

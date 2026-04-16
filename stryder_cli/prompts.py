@@ -65,7 +65,7 @@ def input_date(prompt: str) -> datetime:
 
 def ensure_default_timezone() -> str | None:
     """Return stored tz if present; otherwise prompt once, validate, store, and return it."""
-    from stryder_core.path_memory import get_saved_timezone, set_saved_timezone
+    from stryder_core.profile_memory import get_saved_timezone, set_saved_timezone
     tz = get_saved_timezone()
     if tz:
         return tz

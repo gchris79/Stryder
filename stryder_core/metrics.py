@@ -1,4 +1,3 @@
-from functools import partial
 from typing import TypedDict, Literal, Callable, Any
 import pandas as pd
 from stryder_core.utils_formatting import fmt_hms, fmt_pace_km, fmt_str_decimals, fmt_distance_km_str
@@ -63,7 +62,9 @@ GARMIN_PARSE_SPEC = {
 
 
 def make_dt_value(mode="local"):
-    return partial(as_aware, tz=get_tzinfo()) if mode == "local" else to_utc
+    if mode == "local":
+        return lambda value: as_aware(value, tz=get_tzinfo())
+    return to_utc
 
 
 def build_metrics(dt_mode: Literal["local", "utc"] = "local"):

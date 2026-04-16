@@ -6,9 +6,11 @@ from stryder_cli.cli_utils import MenuItem
 from stryder_core.bootstrap import bootstrap_context_core
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, init_db
+from stryder_core.profile_memory import blank_profile_config, check_boot_json, load_json, CONFIG_PATH, save_json
 from stryder_core.metrics import build_metrics
-from stryder_core.path_memory import load_json, CONFIG_PATH
 
+
+from stryder_tui.screens.add_profile import AddProfile
 from stryder_tui.screens.choose_file_prompt import PathPicker
 from stryder_tui.screens.confirm_dialog import ConfirmDialog
 from stryder_tui.screens.import_progress import ImportProgress
@@ -23,21 +25,71 @@ class StryderTui(App):
     """ The main application """
 
     def on_mount(self):
-        data = load_json(CONFIG_PATH)
-        self.resolved_paths = bootstrap_context_core(data)
-        self.metrics = build_metrics("local")
         self.conn = connect_db(DB_PATH)
+        self.data = load_json(CONFIG_PATH)
+        self.startup_status = check_boot_json(self.data)
+
         configure_connection(self.conn)
         init_db(self.conn)
+
+        if self.startup_status == "invalid":
+            self.startup_mode = "setup"
+            self.data = blank_profile_config()
+            self.push_screen(AddProfile(), callback=self._handle_profile_name)
+            return
+        elif self.startup_status == "needs_setup":
+            self.active_profile = self.data["active_profile"] 
+            self.startup_mode = "setup"
+            self.push_screen(TzPrompt(), callback=self._handle_profile_tz)
+            return
+
+        if self.startup_status == "valid":
+            self.startup_mode = "normal"
+            self.initialize_normal_app_state()
+
+
+    def initialize_normal_app_state(self) -> None:
+        """ Bootstrap actions after profile check is legit """
+
+        bootstrap_context_core(self.data)
+        self.metrics = build_metrics("local")
         self.mode : Literal["import", "unparsed"] = "import"
+
 
     def on_exit(self):
         if getattr(self, "conn", None):
             self.conn.close()
 
+    
     def on_ready(self) -> None:
-        self.action_open_main_menu()
+        if self.startup_mode == "normal":
+            self.action_open_main_menu()
 
+
+    def _handle_profile_name(self, profile_name:str) -> None:
+        if profile_name is None:
+            return
+
+        if profile_name not in self.data["profiles"]:
+            self.data["active_profile"] = self.active_profile = profile_name
+            self.data["profiles"][self.active_profile] = {}
+            self.push_screen(TzPrompt(), callback=self._handle_profile_tz)
+        else:
+            self.app.notify("Profile name already exists.", severity="information")
+            return
+
+    def _handle_profile_tz(self, tz:str) -> None:
+        if tz is None:
+            return
+        
+        self.data["profiles"][self.active_profile]["timezone"] = tz
+
+        save_json(CONFIG_PATH, self.data)
+        self.startup_status = "valid"
+        self.startup_mode = "normal"
+        self.initialize_normal_app_state()
+        self.action_open_main_menu() 
+        
 
     def action_open_main_menu(self):
         items = [
@@ -122,10 +174,10 @@ class StryderTui(App):
             self.push_screen(ResetDBProgress())
 
 
-
     # Quit option
     def action_quit(self):
         self.exit()
+        
 
 def main():
     StryderTui().run()

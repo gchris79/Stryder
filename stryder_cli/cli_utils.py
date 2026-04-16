@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional, Callable, Iterable
 from tabulate import tabulate
 from stryder_cli.prompts import prompt_yes_no
-from stryder_core.path_memory import save_paths
+from stryder_core.profile_memory import save_paths
 from stryder_core.runtime_context import get_stryd_path, get_garmin_file
 
 

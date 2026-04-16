@@ -1,6 +1,6 @@
 from pathlib import Path
 from stryder_core.date_utilities import resolve_tz
-from stryder_core.path_memory import REQUIRED_PATHS
+from stryder_core.profile_memory import REQUIRED_PATHS, get_active_timezone
 from stryder_core.runtime_context import set_context
 
 
@@ -38,32 +38,25 @@ def bootstrap_defaults_core(data: dict) -> dict[str, Path]:
     return resolved
 
 
-def core_resolve_timezone(tz_str: str | None):
+def core_resolve_timezone(tz_str: str):
     """Pure, no prompts."""
-    if not tz_str:
-        return None, None
+    # if not tz_str:
+    #     return None, None
     tzinfo = resolve_tz(tz_str)
     return tz_str, tzinfo
 
 
-def bootstrap_context_core(data: dict) -> dict[str, Path]:
+def bootstrap_context_core(data: dict) -> None:
     """
     Pure bootstrap:
-    - validate paths (no prompts)
     - resolve timezone (no prompts)
     - set runtime_context
-    - return resolved values
     """
-    resolved_paths = bootstrap_defaults_core(data)
 
-    tz_str = data.get("TIMEZONE")
+    tz_str = get_active_timezone(data)
     tz_str, tzinfo = core_resolve_timezone(tz_str)
 
     set_context(
         tz_str=tz_str,
-        tzinfo=tzinfo,
-        stryd_path=resolved_paths.get("STRYD_DIR"),
-        garmin_file=resolved_paths.get("GARMIN_CSV_FILE"),
+        tzinfo=tzinfo
     )
-
-    return resolved_paths
