@@ -1,12 +1,14 @@
+import os
 from typing import Literal
 
 from textual.app import App
+
 from stryder_core.utils import configure_connection
 from stryder_cli.cli_utils import MenuItem
 from stryder_core.bootstrap import bootstrap_context_core
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, init_db
-from stryder_core.profile_memory import blank_profile_config, check_boot_json, create_profile, get_active_profile, load_json, CONFIG_PATH, save_json, set_active_garmin_csv, set_active_stryd_path, set_active_timezone
+from stryder_core.profile_memory import blank_profile_config, check_boot_json, create_profile, get_active_garmin_csv, get_active_profile, get_active_stryd_path, get_active_timezone, load_json, CONFIG_PATH, save_json, set_active_garmin_csv, set_active_profile, set_active_stryd_path, set_active_timezone
 from stryder_core.metrics import build_metrics
 
 
@@ -38,7 +40,6 @@ class StryderTui(App):
             self.push_screen(AddProfile(), callback=self._handle_profile_name)
             return
         elif self.startup_status == "needs_setup":
-            self.active_profile = self.data["active_profile"] 
             self.startup_mode = "setup"
             self.push_screen(TzPrompt(), callback=self._handle_profile_tz)
             return
@@ -72,7 +73,7 @@ class StryderTui(App):
 
         if profile_name not in self.data["profiles"]:
             create_profile(self.data, profile_name)
-            self.active_profile = profile_name
+            set_active_profile(self.data, profile_name)
             save_json(CONFIG_PATH, self.data)
             self.push_screen(TzPrompt(), callback=self._handle_profile_tz)
         else:
@@ -107,7 +108,41 @@ class StryderTui(App):
     # Import run option
     def action_add_run(self):
         self.mode = "import"
-        self.push_screen(TzPrompt(), callback=self._handle_import_tz_response)
+        stryd = get_active_stryd_path(self.data)
+        garmin = get_active_garmin_csv(self.data)
+
+        if stryd and garmin and os.path.exists(stryd) and os.path.exists(garmin):
+            self.push_screen(
+                ConfirmDialog("Do you want to use saved import paths?"),
+                callback=self._handle_stored_data_response
+            )
+        else:
+            self.push_screen(
+                PathPicker(question="Choose Stryd directory for batch import or single file for single run import",
+                            mode="file_dir"
+            ),
+            callback=self._handle_import_stryd_response,
+        )
+
+
+    def _handle_stored_data_response(self, confirmed: bool) -> None:
+        if confirmed:
+            self.push_screen(
+                ImportProgress(
+                    stryd_path=get_active_stryd_path(self.data),
+                    garmin_file=get_active_garmin_csv(self.data),
+                    tz=get_active_timezone(self.data),
+                    mode=self.mode
+                )
+            )
+        else:
+            self.push_screen(
+            PathPicker(question="Choose Stryd directory for batch import or single file for single run import",
+                       mode="file_dir"
+            ),
+            callback=self._handle_import_stryd_response,
+        )
+            
 
     # Find unparsed runs option
     def action_find_unparsed(self):
@@ -116,22 +151,19 @@ class StryderTui(App):
 
     # If tz chosen, move to Stryd file/dir dialog
     def _handle_import_tz_response(self, tz:str) -> None:
-        if tz is None:
-            return
-        self.import_tz = tz     # store tz for later
+
         self.push_screen(
             PathPicker(question="Choose Stryd directory for batch import or single file for single run import",
                        mode="file_dir"
             ),
             callback=self._handle_import_stryd_response,
         )
+
      # If Stryd dir/file chosen, move to Garmin file choice
     def _handle_import_stryd_response(self, stryd_path:str| None) -> None:
         if stryd_path is None:
-            self.push_screen(TzPrompt(), callback=self._handle_import_tz_response)
             return
         
-        self.stryd_path = stryd_path
         set_active_stryd_path(self.data, stryd_path)
         save_json(CONFIG_PATH, self.data)
 
@@ -139,25 +171,27 @@ class StryderTui(App):
             PathPicker(question="Choose Garmin file to match workout name with Stryd runs", mode="file"),
             callback=self._handle_import_garmin_response,
         )
+        
+        
     # If Garmin file chosen, move use core for imports and then return to main menu
     def _handle_import_garmin_response(self, garmin_file:str| None) -> None:
         if garmin_file is None:
             self.push_screen(
                 PathPicker(question="Choose Stryd directory for batch import or single file for single run import",
-                           mode="file_dir"),
+                        mode="file_dir"
+                ),
                 callback=self._handle_import_stryd_response,
-                )
+            )
             return
-        
-        self.garmin_file = garmin_file
+            
         set_active_garmin_csv(self.data, garmin_file)
-        save_json(CONFIG_PATH, self.data)
+        save_json(CONFIG_PATH,self.data)
 
         self.push_screen(
             ImportProgress(
-                stryd_path=self.stryd_path,
-                garmin_file=self.garmin_file,
-                tz=self.import_tz,
+                stryd_path=get_active_stryd_path(self.data),
+                garmin_file=get_active_garmin_csv(self.data),
+                tz=get_active_timezone(self.data),
                 mode=self.mode
             )
         )
