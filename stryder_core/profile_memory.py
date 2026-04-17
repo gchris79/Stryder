@@ -157,24 +157,31 @@ def get_active_garmin_csv(data:dict):
 
 
 def set_active_profile(data:dict, active_profile:str):
-    """ Saves the active profile to json """
+    """ Set the active profile """
     data["active_profile"] = active_profile
-    save_json(CONFIG_PATH, data)
 
 
-def set_active_timezone(data:dict, tz:str):
-    """ Saves timezone to json """
+def create_profile(data:dict, profile_name:str):
+    """ Create a profile blank dict """
+    data["profiles"][profile_name] = {
+        "timezone": None,
+        "stryd_dir": None,
+        "garmin_csv_file": None,
+        "weight": None,
+    }
+    set_active_profile(data, profile_name)
+    
+
+def set_active_timezone(data:dict, tz:str|None):
+    """ Set profile's timezone """
     get_active_profile_dict(data)["timezone"] = tz
-    save_json(CONFIG_PATH, data)
 
 
-def set_active_stryd_path(data:dict, stryd_path:str):
-    """ Saves stryd path to json """
+def set_active_stryd_path(data:dict, stryd_path:str|None):
+    """ Set profile's stryd path """
     get_active_profile_dict(data)["stryd_dir"] = stryd_path
-    save_json(CONFIG_PATH, data)
 
 
-def set_active_garmin_csv(data:dict, garmin_path:str):
-    """ Saves garmin path to json """
+def set_active_garmin_csv(data:dict, garmin_path:str|None):
+    """ Saves profile's garmin path """
     get_active_profile_dict(data)["garmin_csv_file"] = garmin_path
-    save_json(CONFIG_PATH, data)

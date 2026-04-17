@@ -6,7 +6,7 @@ from stryder_cli.cli_utils import MenuItem
 from stryder_core.bootstrap import bootstrap_context_core
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, init_db
-from stryder_core.profile_memory import blank_profile_config, check_boot_json, get_active_profile, load_json, CONFIG_PATH, save_json, set_active_garmin_csv, set_active_stryd_path
+from stryder_core.profile_memory import blank_profile_config, check_boot_json, create_profile, get_active_profile, load_json, CONFIG_PATH, save_json, set_active_garmin_csv, set_active_stryd_path, set_active_timezone
 from stryder_core.metrics import build_metrics
 
 
@@ -71,8 +71,9 @@ class StryderTui(App):
             return
 
         if profile_name not in self.data["profiles"]:
-            self.data["active_profile"] = self.active_profile = profile_name
-            self.data["profiles"][self.active_profile] = {}
+            create_profile(self.data, profile_name)
+            self.active_profile = profile_name
+            save_json(CONFIG_PATH, self.data)
             self.push_screen(TzPrompt(), callback=self._handle_profile_tz)
         else:
             self.app.notify("Profile name already exists.", severity="information")
@@ -82,7 +83,7 @@ class StryderTui(App):
         if tz is None:
             return
         
-        self.data["profiles"][self.active_profile]["timezone"] = tz
+        set_active_timezone(self.data, tz)
 
         save_json(CONFIG_PATH, self.data)
         self.startup_status = "valid"
@@ -132,6 +133,7 @@ class StryderTui(App):
         
         self.stryd_path = stryd_path
         set_active_stryd_path(self.data, stryd_path)
+        save_json(CONFIG_PATH, self.data)
 
         self.push_screen(
             PathPicker(question="Choose Garmin file to match workout name with Stryd runs", mode="file"),
@@ -149,6 +151,7 @@ class StryderTui(App):
         
         self.garmin_file = garmin_file
         set_active_garmin_csv(self.data, garmin_file)
+        save_json(CONFIG_PATH, self.data)
 
         self.push_screen(
             ImportProgress(
