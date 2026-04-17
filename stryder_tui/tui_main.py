@@ -1,11 +1,12 @@
 import os
+from pathlib import Path
 from typing import Literal
 
 from textual.app import App
 
 from stryder_core.utils import configure_connection
 from stryder_cli.cli_utils import MenuItem
-from stryder_core.bootstrap import bootstrap_context_core
+from stryder_core.bootstrap import bootstrap_context_core, validate_path
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, init_db
 from stryder_core.profile_memory import blank_profile_config, check_boot_json, create_profile, get_active_garmin_csv, get_active_profile, get_active_stryd_path, get_active_timezone, load_json, CONFIG_PATH, save_json, set_active_garmin_csv, set_active_profile, set_active_stryd_path, set_active_timezone
@@ -111,7 +112,8 @@ class StryderTui(App):
         stryd = get_active_stryd_path(self.data)
         garmin = get_active_garmin_csv(self.data)
 
-        if stryd and garmin and os.path.exists(stryd) and os.path.exists(garmin):
+        if stryd and garmin and validate_path(Path(stryd), "file_or_dir") \
+            and validate_path(Path(garmin), "file"):
             self.push_screen(
                 ConfirmDialog("Do you want to use saved import paths?"),
                 callback=self._handle_stored_data_response

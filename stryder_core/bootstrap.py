@@ -14,6 +14,8 @@ def validate_path(p: Path | None, expect: str) -> bool:
         return False
     if expect == "dir" and not p.is_dir():
         return False
+    if expect == "file_or_dir" and not (p.is_file() or p.is_dir()):
+        return False
     return True
 
 
