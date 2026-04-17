@@ -6,7 +6,7 @@ from stryder_cli.cli_utils import MenuItem
 from stryder_core.bootstrap import bootstrap_context_core
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, init_db
-from stryder_core.profile_memory import blank_profile_config, check_boot_json, load_json, CONFIG_PATH, save_json
+from stryder_core.profile_memory import blank_profile_config, check_boot_json, get_active_profile, load_json, CONFIG_PATH, save_json, set_active_garmin_csv, set_active_stryd_path
 from stryder_core.metrics import build_metrics
 
 
@@ -129,7 +129,10 @@ class StryderTui(App):
         if stryd_path is None:
             self.push_screen(TzPrompt(), callback=self._handle_import_tz_response)
             return
+        
         self.stryd_path = stryd_path
+        set_active_stryd_path(self.data, stryd_path)
+
         self.push_screen(
             PathPicker(question="Choose Garmin file to match workout name with Stryd runs", mode="file"),
             callback=self._handle_import_garmin_response,
@@ -143,7 +146,9 @@ class StryderTui(App):
                 callback=self._handle_import_stryd_response,
                 )
             return
+        
         self.garmin_file = garmin_file
+        set_active_garmin_csv(self.data, garmin_file)
 
         self.push_screen(
             ImportProgress(
@@ -177,7 +182,7 @@ class StryderTui(App):
     # Quit option
     def action_quit(self):
         self.exit()
-        
+
 
 def main():
     StryderTui().run()

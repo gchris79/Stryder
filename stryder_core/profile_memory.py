@@ -154,3 +154,27 @@ def get_active_stryd_path(data:dict):
 def get_active_garmin_csv(data:dict):
     """ Returns garmin path from active profile / use after json is valitation """
     return get_active_profile_dict(data)["garmin_csv_file"]
+
+
+def set_active_profile(data:dict, active_profile:str):
+    """ Saves the active profile to json """
+    data["active_profile"] = active_profile
+    save_json(CONFIG_PATH, data)
+
+
+def set_active_timezone(data:dict, tz:str):
+    """ Saves timezone to json """
+    get_active_profile_dict(data)["timezone"] = tz
+    save_json(CONFIG_PATH, data)
+
+
+def set_active_stryd_path(data:dict, stryd_path:str):
+    """ Saves stryd path to json """
+    get_active_profile_dict(data)["stryd_dir"] = stryd_path
+    save_json(CONFIG_PATH, data)
+
+
+def set_active_garmin_csv(data:dict, garmin_path:str):
+    """ Saves garmin path to json """
+    get_active_profile_dict(data)["garmin_csv_file"] = garmin_path
+    save_json(CONFIG_PATH, data)
