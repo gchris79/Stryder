@@ -1,0 +1,28 @@
+AddProfile {
+    align: center middle;
+}
+
+AddProfile #dialog {
+    width: 60;
+    height: 16;
+    padding: 2;
+    background: gray;
+}
+
+AddProfile #question {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+AddProfile #buttons {
+    layout: horizontal;
+    width: 100%;
+    align-horizontal: center;
+    margin-top: 1;
+}
+
+AddProfile #buttons Button {
+    margin: 0 2;
+}

@@ -7,7 +7,7 @@ from textual.widgets import Button, Footer, Header, Input, Label
 
 class AddProfile(Screen):
 
-    #CSS_PATH = "../CSS/add_profile.tcss"
+    CSS_PATH = "../CSS/add_profile.tcss"
 
     def compose(self) -> ComposeResult:
         yield Header()
