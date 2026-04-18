@@ -9,8 +9,10 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-import json
 from pathlib import Path
+
+from stryder_core.config import DB_PATH
+from stryder_core.profile_memory import load_json, resolve_config_path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -73,22 +75,22 @@ WSGI_APPLICATION = 'stryder_web.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+
+# take CONFIG_PATH already in core
+CONFIG_PATH = resolve_config_path()
+core_config = load_json(CONFIG_PATH)
+
+STRYDER_CORE_CONFIG = core_config
+ACTIVE_PROFILE = core_config["active_profile"]
+STRYDER_TIMEZONE = core_config["profiles"][ACTIVE_PROFILE]["timezone"]
+STRYDER_DB_PATH = DB_PATH
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': "/media/gchr/Data/PyCharm Projects/Stryder/runs_data.db",
+        'NAME': STRYDER_DB_PATH,
     }
 }
-
-# take CONFIG_PATH already in core
-CONFIG_PATH = "/media/gchr/Data/PyCharm Projects/Stryder/stryder_core/profiles.json"
-
-with open(CONFIG_PATH) as f:
-    core_config = json.load(f)
-
-STRYDER_CORE_CONFIG = core_config
-STRYDER_DB_PATH = DATABASES["default"]["NAME"]
-STRYDER_TIMEZONE = core_config.get("TIMEZONE")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

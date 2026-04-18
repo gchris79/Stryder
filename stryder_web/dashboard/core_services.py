@@ -8,7 +8,7 @@ from stryder_core.metrics import build_metrics
 def get_bootstrap():
     """
     Runs once per Django process.
-    Pure bootstrap: validates paths, resolves timezone, sets runtime_context.
+    Pure bootstrap: resolves timezone, sets runtime_context.
     """
     return bootstrap_context_core(settings.STRYDER_CORE_CONFIG)
 

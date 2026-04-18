@@ -1,6 +1,6 @@
 from pathlib import Path
 from stryder_core.date_utilities import resolve_tz
-from stryder_core.profile_memory import REQUIRED_PATHS, get_active_timezone
+from stryder_core.profile_memory import get_active_timezone
 from stryder_core.runtime_context import set_context
 
 
@@ -17,27 +17,6 @@ def validate_path(p: Path | None, expect: str) -> bool:
     if expect == "file_or_dir" and not (p.is_file() or p.is_dir()):
         return False
     return True
-
-
-def bootstrap_defaults_core(data: dict) -> dict[str, Path]:
-    """
-    - reads defaults from data
-    - validates paths WITHOUT prompting
-    - DOES NOT print anything
-    - returns whatever is valid, leaves invalid ones as None
-    """
-    resolved = {}
-
-    for key, expect in REQUIRED_PATHS.items():
-        raw = data.get(key)
-        p = Path(raw).expanduser() if raw else None
-
-        if validate_path(p, expect):
-            resolved[key] = p
-        else:
-            resolved[key] = None   # not resolved yet
-
-    return resolved
 
 
 def core_resolve_timezone(tz_str: str):

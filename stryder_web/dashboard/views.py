@@ -8,6 +8,8 @@ from stryder_core.plot_core import plot_single_series, X_AXIS_SPEC
 from stryder_core.reports import get_single_run_query
 from stryder_core.usecases import get_dashboard_summary, get_single_run_summary
 from django.conf import settings
+
+from stryder_web.settings import STRYDER_TIMEZONE
 from .core_services import get_bootstrap, get_metrics, get_conn
 from django.utils import timezone
 import matplotlib
@@ -19,7 +21,7 @@ from matplotlib import pyplot as plt
 def dashboard_list(request):
     get_bootstrap()
     conn = get_conn()
-    tz_str = settings.STRYDER_CORE_CONFIG.get("TIMEZONE")
+    tz_str = STRYDER_TIMEZONE
 
     default_days = 45
 
