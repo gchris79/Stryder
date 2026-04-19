@@ -146,12 +146,13 @@ Simply point Stryder to these paths during import.
 # ▶️ Getting Started
 
 ## Requirements
-- Python 3.11
+- Tested on Python 3.13 (recommended)
+- Previously developed on Python 3.11
 
 ## 1️⃣ Setup
 
 ```
-python3.11 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
@@ -185,7 +186,7 @@ The web interface:
 ## Troubleshooting
 
 If the TUI fails to start, verify:
-- Python 3.11 is being used
+- Python 3.13 is being used
 - the virtual environment is activated
 - dependencies were installed from requirements.txt
 
@@ -204,7 +205,7 @@ The CLI will be redesigned as a true command-driven interface in a future major 
 # 🛠 Tech Stack
 
 ## Core
-- Python 3.11
+- Python 3.13
 - SQLite
 - Pandas
 
