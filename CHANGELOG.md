@@ -3,6 +3,36 @@ All notable changes to **Stryder** will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),  
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.8.1] - 2026-04-20
+### 🐛 Bug Fixes
+- Fixed startup bug introduced in 1.8.0 (runtime context initialization issue)
+
+### 🚀 Profiles System (Major Change)
+
+- Introduced profile-based configuration system
+- Each profile manages its own:
+  - Timezone
+  - Import sources
+- Active profile is now required for all operations
+
+### TUI
+- Refactored menus to operate per-profile
+- Improved startup flow with profile validation
+- Unified import and unparsed pipelines under profile context
+
+### Django Web
+- Views now depend on active profile
+- Added error handling for:
+  - Missing profile
+  - Missing database
+
+### Internal
+- Core config restructuring to support multiple profiles
+- Cleaner separation between profile config and runtime logic
+
 ---
 
 ## [1.8.0] – 2026-02-17
