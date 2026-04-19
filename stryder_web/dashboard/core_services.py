@@ -1,16 +1,49 @@
 from functools import lru_cache
-from django.conf import settings
+import json
+import sqlite3
+
 from stryder_core.bootstrap import bootstrap_context_core
 from stryder_core.db_schema import connect_db
 from stryder_core.metrics import build_metrics
+from stryder_core.profile_memory import load_json, CONFIG_PATH
+
+from stryder_web.stryder_web import settings
+
+
+class ProfileRequiredError(Exception):
+    pass
+
+class MissingDatabaseError(Exception):
+    pass
+
 
 @lru_cache(maxsize=1)
 def get_bootstrap():
     """
     Runs once per Django process.
-    Pure bootstrap: resolves timezone, sets runtime_context.
+    Pure bootstrap: validates paths, resolves timezone, sets runtime_context.
     """
-    return bootstrap_context_core(settings.STRYDER_CORE_CONFIG)
+    try:
+        return bootstrap_context_core(get_core_config())
+    
+    except(FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+        raise ProfileRequiredError("Invalid or missing profile") from e
+    
+
+def get_core_config():
+    try:
+        core_config = load_json(CONFIG_PATH)
+
+        active_profile = core_config["active_profile"]
+        profiles = core_config["profiles"]
+        profile = profiles[active_profile]
+        tz_str = profile["timezone"]
+
+        return core_config
+    
+    except(FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+        raise ProfileRequiredError("Invalid or missing profile") from e
+    
 
 @lru_cache(maxsize=1)
 def get_metrics():
@@ -22,4 +55,20 @@ def get_metrics():
 
 
 def get_conn():
-    return connect_db(settings.STRYDER_DB_PATH)
+    try:
+        conn = connect_db(settings.STRYDER_DB_PATH)
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT name 
+            FROM sqlite_master 
+            WHERE type='table' AND name='runs';
+        """)   
+
+        if cur.fetchone() is None:
+            raise MissingDatabaseError("Database exists but is not initialized")
+
+        return conn
+    
+    except(FileNotFoundError, sqlite3.OperationalError) as e:
+        raise MissingDatabaseError("Invalid or missing database") from e

@@ -1,27 +1,44 @@
 from datetime import timedelta
 from io import BytesIO
+
 from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils.dateparse import parse_date
+from django.utils import timezone
+
 from stryder_core.plot_core import plot_single_series, X_AXIS_SPEC
+from stryder_core.profile_memory import CONFIG_PATH
 from stryder_core.reports import get_single_run_query
 from stryder_core.usecases import get_dashboard_summary, get_single_run_summary
-from django.conf import settings
 
-from stryder_web.settings import STRYDER_TIMEZONE
-from .core_services import get_bootstrap, get_metrics, get_conn
-from django.utils import timezone
+from stryder_web.dashboard.core_services import MissingDatabaseError, ProfileRequiredError, get_bootstrap, get_core_config, get_metrics, get_conn
+
 import matplotlib
+
+
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
 
 # Create your views here.
 def dashboard_list(request):
-    get_bootstrap()
-    conn = get_conn()
-    tz_str = STRYDER_TIMEZONE
+    try:
+        core_config = get_core_config()
+        active_profile = core_config["active_profile"]
+        tz_str = core_config["profiles"][active_profile]["timezone"]
+    except(ProfileRequiredError) as e:
+        ctx = {}
+        ctx["error"] = e
+        return render(request, "dashboard/invalid_profile.html", ctx)
+
+    try:
+        conn = get_conn()
+    except(MissingDatabaseError) as e:
+        ctx = {}
+        ctx["error"] = e
+        return render(request, "dashboard/invalid_profile.html", ctx)
+
 
     default_days = 45
 

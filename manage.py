@@ -12,7 +12,7 @@ def main():
     sys.path.append(str(ROOT_DIR))
 
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'stryder_web.settings')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'stryder_web.stryder_web.settings')
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

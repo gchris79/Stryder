@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 
 from stryder_core.config import DB_PATH
-from stryder_core.profile_memory import load_json, resolve_config_path
+from stryder_core.profile_memory import resolve_config_path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-INSTALLED_APPS += ['dashboard']
+INSTALLED_APPS += ['stryder_web.dashboard']
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -51,7 +51,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'stryder_web.urls'
+ROOT_URLCONF = 'stryder_web.stryder_web.urls'
 
 TEMPLATES = [
     {
@@ -70,19 +70,14 @@ TEMPLATES = [
 
 TEMPLATES[0]['DIRS'] = [Path(BASE_DIR,"templates")]
 
-WSGI_APPLICATION = 'stryder_web.wsgi.application'
+WSGI_APPLICATION = 'stryder_web.stryder_web.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 
 # take CONFIG_PATH already in core
-CONFIG_PATH = resolve_config_path()
-core_config = load_json(CONFIG_PATH)
 
-STRYDER_CORE_CONFIG = core_config
-ACTIVE_PROFILE = core_config["active_profile"]
-STRYDER_TIMEZONE = core_config["profiles"][ACTIVE_PROFILE]["timezone"]
 STRYDER_DB_PATH = DB_PATH
 
 DATABASES = {
@@ -91,6 +86,7 @@ DATABASES = {
         'NAME': STRYDER_DB_PATH,
     }
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
