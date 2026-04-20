@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.11", "3.13"]
         
@@ -33,7 +34,7 @@ jobs:
         
       - name: Run import sanity check
         run: |
-          python -c <<EOF
+          python <<EOF
           import django
           import stryder_core
           import stryder_tui
