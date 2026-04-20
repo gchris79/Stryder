@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+  
+      - name: Set up selected Python version ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+  
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        
+      - name: Run import sanity check
+        run: |
+          python -c <<EOF
+          import django
+          import stryder_core
+          import stryder_tui
+          
+          print('django import ok')
+          EOF
+      
+      - name: Run Django check
+        run: python manage.py check
