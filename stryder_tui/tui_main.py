@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Literal
 
@@ -9,7 +8,7 @@ from stryder_cli.cli_utils import MenuItem
 from stryder_core.bootstrap import bootstrap_context_core, validate_path
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, init_db
-from stryder_core.profile_memory import blank_profile_config, check_boot_json, create_profile, get_active_garmin_csv, get_active_profile, get_active_stryd_path, get_active_timezone, load_json, CONFIG_PATH, save_json, set_active_garmin_csv, set_active_profile, set_active_stryd_path, set_active_timezone
+from stryder_core.profile_memory import blank_profile_config, check_boot_json, create_profile, get_active_garmin_csv, get_active_stryd_path, get_active_timezone, load_json, CONFIG_PATH, save_json, set_active_garmin_csv, set_active_profile, set_active_stryd_path, set_active_timezone
 from stryder_core.metrics import build_metrics
 
 
