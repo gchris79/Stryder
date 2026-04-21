@@ -132,6 +132,8 @@ def dt_to_string(dt: datetime, fmt: OutFmt = "iso", tz=None) -> str:
 
 def resolve_tz(timezone_str) -> ZoneInfo:
     """ Takes a timezone string e.g "Europe/Athens" and returns a ZoneInfo object. """
+    if not timezone_str:
+        return ZoneInfo(tzlocal.get_localzone_name())
     try:
         return ZoneInfo(timezone_str)
     except ZoneInfoNotFoundError:

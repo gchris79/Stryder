@@ -39,7 +39,7 @@ jobs:
           import stryder_core
           import stryder_tui
           
-          print('django import ok')
+          print('django, stryder_core and stryder_tui imports ok')
           EOF
       
       - name: Run Django check

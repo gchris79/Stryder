@@ -6,10 +6,9 @@ from stryder_core.config import COMMON_TIMEZONES
 from stryder_core.profile_memory import check_boot_json, load_json
 
 
-
-
 class TestCheckBootJson(unittest.TestCase):
-        
+    """ Test if check_boot_json returns corectly the json status """
+
     def test_missing_active_profile_key(self):
         data = {
             "profiles": {}
@@ -108,6 +107,7 @@ class TestCheckBootJson(unittest.TestCase):
 
 
 class TestLoadJson(unittest.TestCase):
+    """ Tests json_load if returns a secure json or an empty dict """
 
     def test_missing_json(self):
         with tempfile.TemporaryDirectory() as tempdirname:
