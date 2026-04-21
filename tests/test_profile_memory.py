@@ -1,6 +1,9 @@
+from pathlib import Path
+import tempfile
 import unittest
 
-from stryder_core.profile_memory import check_boot_json
+from stryder_core.config import COMMON_TIMEZONES
+from stryder_core.profile_memory import check_boot_json, load_json
 
 
 
@@ -96,9 +99,45 @@ class TestCheckBootJson(unittest.TestCase):
             "active_profile": "test name",
             "profiles": {
                 "test name": {
-                "timezone": "Europe/Athens"
+                "timezone": COMMON_TIMEZONES[0]
                 }
             }
         }
         status = check_boot_json(data)
         self.assertEqual(status, 'valid')
+
+
+class TestLoadJson(unittest.TestCase):
+
+    def test_missing_json(self):
+        with tempfile.TemporaryDirectory() as tempdirname:
+            p = Path(tempdirname) / "test.json"
+            data = load_json(p)
+            self.assertEqual(data, {})
+
+    def test_invalid_json(self):
+        with tempfile.TemporaryDirectory() as tempdirname:
+            p = Path(tempdirname) / "test.json"
+
+            p.write_text('Broken json', encoding="utf-8")
+
+            data = load_json(p)
+            self.assertEqual(data, {})        
+
+    def test_valid_json(self):
+        with tempfile.TemporaryDirectory() as tempdirname:
+            p = Path(tempdirname) / "test.json"
+
+            p.write_text('{"key": "value"}', encoding="utf-8")
+            
+            data = load_json(p)
+            self.assertEqual(data, {"key": "value"})    
+
+    def test_valid_non_dict_json(self):
+        with tempfile.TemporaryDirectory() as tempdirname:
+            p = Path(tempdirname) / "test.json"
+
+            p.write_text("[1, 2, 3]", encoding="utf-8")
+            
+            data = load_json(p)
+            self.assertEqual(data, {})   
