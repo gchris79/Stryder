@@ -24,7 +24,9 @@ def get_bootstrap():
     Pure bootstrap: validates paths, resolves timezone, sets runtime_context.
     """
     try:
-        return bootstrap_context_core(get_core_config())
+        core_config = get_core_config()
+        bootstrap_context_core(core_config)
+        return core_config
     
     except(FileNotFoundError, json.JSONDecodeError, KeyError) as e:
         raise ProfileRequiredError("Invalid or missing profile") from e

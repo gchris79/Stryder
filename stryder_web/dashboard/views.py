@@ -8,7 +8,6 @@ from django.utils.dateparse import parse_date
 from django.utils import timezone
 
 from stryder_core.plot_core import plot_single_series, X_AXIS_SPEC
-from stryder_core.profile_memory import CONFIG_PATH
 from stryder_core.reports import get_single_run_query
 from stryder_core.usecases import get_dashboard_summary, get_single_run_summary
 
@@ -24,9 +23,10 @@ from matplotlib import pyplot as plt
 # Create your views here.
 def dashboard_list(request):
     try:
-        core_config = get_core_config()
+        core_config = get_bootstrap()
         active_profile = core_config["active_profile"]
         tz_str = core_config["profiles"][active_profile]["timezone"]
+        
     except(ProfileRequiredError) as e:
         ctx = {}
         ctx["error"] = e

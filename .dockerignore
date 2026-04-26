@@ -1,0 +1,46 @@
+# Python cache / bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Git
+.git/
+.gitignore
+
+# Docker files not needed inside image
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Local databases / runtime data
+*.db
+*.sqlite3
+runs_data.db
+stryder_web/db.sqlite3
+
+# Local generated output
+plots/
+data/Plots/
+
+# Raw personal training data
+data/CSV_Garmin/
+data/CSV_Stryd/
+stryd_matched_with_workout.csv
+
+# Local profile/runtime config
+stryder_core/profiles.json
+
+# Test/cache tooling
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/
