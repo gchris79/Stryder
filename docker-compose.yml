@@ -1,0 +1,18 @@
+services:
+  web:
+    build: .
+    command: gunicorn stryder_web.stryder_web.wsgi:application --bind 0.0.0.0:8000 --workers 2
+    volumes:
+      - ./runs_data.db:/app/runs_data.db
+      - ./stryder_core/profiles.json:/app/stryder_core/profiles.json
+    expose:
+      - "8000"
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - web
