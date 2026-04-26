@@ -182,7 +182,9 @@ The web interface:
 - Provides interactive visual reports
 - Does not import or modify data
 
----
+⚠️ The Web viewer requires an initialized database.  
+Import data first using the TUI before running the web interface.
+
 ## Troubleshooting
 
 If the TUI fails to start, verify:
@@ -192,13 +194,37 @@ If the TUI fails to start, verify:
 
 ---
 
+## 🐳 Docker (Web Viewer Deployment)
+
+Stryder Web can be run in a production-style container setup:
+```
+Client → Nginx → Gunicorn → Django (Stryder Web)
+```
+### 📦 Requirements
+- Docker
+- Docker Compose
+
+### ▶️ Run with Docker
+#### 1️⃣ Build and start services
+```
+docker compose up --build
+```
+#### 2️⃣ Apply Django migrations (first run only)
+```
+docker compose run --rm web python manage.py migrate
+```
+#### 3️⃣ Open in browser
+```
+http://localhost:8000
+```
+
+---
+
 # 🧩 CLI Status
 
-A legacy menu-based CLI is still included in the repository but is not the recommended interface in v1.8.
+Stryder is currently **TUI-first**, with the Web interface focused on visualization.
 
-Stryder is currently **TUI-first**.
-
-The CLI will be redesigned as a true command-driven interface in a future major release.
+The CLI is considered legacy and will be redesigned or deprecated in a future version.
 
 ---
 

@@ -4,6 +4,7 @@ services:
     command: gunicorn stryder_web.stryder_web.wsgi:application --bind 0.0.0.0:8000 --workers 2
     volumes:
       - ./runs_data.db:/app/runs_data.db
+      - ./stryder_web/db.sqlite3:/app/stryder_web/db.sqlite3
       - ./stryder_core/profiles.json:/app/stryder_core/profiles.json
     expose:
       - "8000"

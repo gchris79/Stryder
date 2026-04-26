@@ -83,7 +83,7 @@ STRYDER_DB_PATH = DB_PATH
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': STRYDER_DB_PATH,
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
