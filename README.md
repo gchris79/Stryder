@@ -40,7 +40,8 @@ Stryder is structured as a multi-layer application:
 - User-selectable X/Y axes
 - Read-only by design (no imports via web)
 
-All interfaces operate on the **same SQLite database**, ensuring consistency across views.
+All interfaces operate on the same Stryder data database (`runs_data.db`),  
+while Django maintains a separate internal database for framework features.
 
 ---
 
@@ -243,8 +244,6 @@ The CLI is considered legacy and will be redesigned or deprecated in a future ve
 - Django
 - HTML / CSS (Django templates)
 - Matplotlib (server-side rendering)
-
-All interfaces share the same database and core logic.
 
 ---
 
