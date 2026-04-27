@@ -7,7 +7,8 @@ from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Header, DataTable, Button, Footer, Label, RadioSet, RadioButton
 
-from stryder_cli.visualizations import render_single_run_report
+
+from stryder_core.table_formatters import render_single_run_report
 from stryder_core.utils import configure_connection
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db

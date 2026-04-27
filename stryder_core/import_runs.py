@@ -82,37 +82,6 @@ def batch_process_stryd_folder(
     }
 
 
-def single_process_stryd_file(stryd_csv_path, garmin_csv_path, conn, timezone_str: str | None = None):
-    """
-    Core engine for importing a single Stryd file.
-    No prompts, no prints. Returns a status dict.
-    """
-    stryd_file = Path(stryd_csv_path)
-    garmin_file = Path(garmin_csv_path)
-
-    if not stryd_file.exists():
-        logging.warning(f"Stryd CSV not found: {stryd_file}")
-        return {"status": "file_not_found"}
-
-    if not garmin_file.exists():
-        logging.error(f"Garmin CSV not found: {garmin_file}")
-        return {"status": "garmin_not_found"}
-
-    result = prepare_run_insert(stryd_file, garmin_file, stryd_file.name, conn, timezone_str)
-    return {
-        "status": result["status"],
-        "file": stryd_file,
-        "start_time": result["start_time"],
-        "avg_power": result["avg_power"],
-        "avg_hr": result["avg_hr"],
-        "total_m": result["total_m"],
-        "error": result["error"],
-        "workout_name": result["workout_name"],
-        "stryd_df": result["stryd_df"],
-    }
-
-
-
 def prepare_run_insert(stryd_file, garmin_file, file_name, conn, timezone_str):
     """ Checks the run if it can be parsed or not and return a dict with info about it. Works in two steps
         a) Creates the dataframes of Stryd and Garmin files

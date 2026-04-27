@@ -23,30 +23,6 @@ X_AXIS_SPEC = {
     "distance_km": {"label": "Distance", "unit": "(km)"}
 }
 
-def plot_distance_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
-    """ Wrapper for plotting weekly distance over time """
-    return plot_weekly_series(df, y_col=y_col, label=label)
-
-
-def plot_duration_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
-    """ Wrapper for plotting weekly duration over time """
-    fmt_hour_min = FuncFormatter(lambda y, pos: fmt_hm(y))
-    loc_30min = MultipleLocator(1800)  # ticks every 30 minutes
-
-    return plot_weekly_series(
-        df, y_col=y_col, label=label,
-        y_formatter=fmt_hour_min, y_locator=loc_30min
-    )
-
-def plot_power_over_time_batch(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
-    """ Wrapper for plotting weekly power over time """
-    return plot_weekly_series(df, y_col=y_col, label=label)
-
-
-def plot_hr_over_time(df: pd.DataFrame, *, y_col: str, label: str) -> Axes:
-    """ Wrapper for plotting weekly HR over time """
-    return plot_weekly_series(df, y_col=y_col, label=label)
-
 
 def plot_single_series(
     df: pd.DataFrame,
@@ -152,50 +128,6 @@ def plot_single_series(
 
     if label:
         ax.legend()
-
-    plt.tight_layout()
-    return ax
-
-
-def plot_weekly_series(
-    weekly: pd.DataFrame,
-    *,
-    y_col: str,
-    label: str,
-    center: bool = True,
-    width_days: int = 3,
-    date_fmt: str = "%b %d",
-    rotation: int = 30,
-    y_formatter: FuncFormatter | None = None,
-    y_locator: Locator | None = None,
-    ax=None,
-):
-    """ Graph plotter for the weekly run report """
-    if y_col not in weekly.columns:
-        raise ValueError(f"y_col '{y_col}' not in DataFrame columns: {list(weekly.columns)}")
-
-    x = pd.to_datetime(weekly["week_start"], errors="coerce").dt.tz_localize(None).dt.normalize()
-    y = weekly[y_col].astype(float)
-
-    if ax is None:
-        fig, ax = plt.subplots()
-
-    ax.bar(x, y, width=width_days, align=("center" if center else "edge"))
-
-    ax.set_xticks(x)
-
-    ax.xaxis.set_major_formatter(mdates.DateFormatter(date_fmt))
-    ax.tick_params(axis="x", rotation=rotation)
-    ax.grid(True, alpha=0.3)
-
-    if y_formatter:
-        ax.yaxis.set_major_formatter(y_formatter)
-    if y_locator:
-        ax.yaxis.set_major_locator(y_locator)
-
-
-    ax.set_title(label)
-    ax.set_ylabel(label)
 
     plt.tight_layout()
     return ax

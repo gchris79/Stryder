@@ -160,7 +160,7 @@ python -m pip install -r requirements.txt
 ```
 ---
 
-## 2️⃣ Run the Textual TUI (Recommended)
+## 2️⃣ Run the Textual TUI (Primary Interface)
 ```
 python -m stryder_tui
 ```
@@ -221,11 +221,14 @@ http://localhost:8000
 
 ---
 
-# 🧩 CLI Status
+# 🧩 Interface Overview
 
-Stryder is currently **TUI-first**, with the Web interface focused on visualization.
+Stryder is now **TUI-first**, with the Web interface focused on visualization.
 
-The CLI is considered legacy and will be redesigned or deprecated in a future version.
+- The **Textual TUI** is the primary interface for importing, reviewing, and managing runs.
+- The **Django Web Viewer** provides read-only analysis and visualization.
+
+The legacy CLI interface has been removed as part of a simplification effort to focus on a clearer and more maintainable user experience.
 
 ---
 
@@ -253,11 +256,8 @@ The CLI is considered legacy and will be redesigned or deprecated in a future ve
 - [x] Canonical metrics refactor
 - [x] Web viewer (Django)
 - [x] Textual TUI interface
-- [ ] Redesign CLI as command-driven interface (v2.0)
-- [ ] Advanced run comparisons
-- [ ] Segment-based analysis
-- [ ] Export filtered data to CSV
-- [ ] Support FIT / TCX / GPX parsing
+- [ ] Improve TUI UX and workflows
+- [ ] Expand Web viewer capabilities
 
 ---
 

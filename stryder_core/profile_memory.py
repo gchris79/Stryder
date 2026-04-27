@@ -34,11 +34,6 @@ def resolve_config_path() -> Path:
 
 CONFIG_PATH = resolve_config_path()
 
-REQUIRED_PATHS = {
-    "garmin_csv_file": "file",
-    "stryd_dir": "dir",
-}
-
 
 def blank_profile_config() -> dict:
     """ Creates a blank profile dict """
@@ -107,28 +102,6 @@ def check_boot_json(data: dict) -> str:
             return "needs_setup"
 
         return "valid"
-
-def save_paths(updates: dict[str, Path | str]) -> None:
-    """ Canonical writer for stryd_dir / garmin_csv_file / timezone """
-    data = load_json(CONFIG_PATH)
-    for k, v in updates.items():
-        if isinstance(v, Path):
-            data[k] = v.expanduser().as_posix()
-        else:
-            data[k] = v
-    save_json(CONFIG_PATH, data)
-
-
-def get_saved_timezone() -> str | None:
-    # TODO Used only from CLI will be deprecated
-    """ Gets timezone from json file """
-    return load_json(CONFIG_PATH).get("TIMEZONE")
-
-
-def set_saved_timezone(tz: str) -> None:
-    # TODO Used only from CLI will be deprecated
-    """ Saves the timezone in json file with json format """
-    save_paths({"TIMEZONE": tz})
 
 
 def get_active_profile(data: dict) -> str:

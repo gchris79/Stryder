@@ -20,19 +20,6 @@ def views_query() -> str:
         JOIN workout_types wt ON w.workout_type_id = wt.id
     """
 
-def for_report_query() -> str:
-    """ SQL query for weekly reports table """
-    return""" 
-        SELECT
-            r.id            AS run_id,
-            r.datetime      AS datetime,
-            w.workout_name  AS wt_name,
-            r.duration_sec  AS duration,
-            r.distance_m    AS distance_m
-        FROM runs r
-        JOIN workouts w ON r.workout_id = w.id
-    """
-
 
 def _sqlite_dt(x):
     """ Normalizes params for SQL use later """

@@ -29,21 +29,3 @@ def get_tzinfo() -> ZoneInfo:
     if _tzinfo is None:
         raise RuntimeError("runtime_context not initialized: call set_context() first")
     return _tzinfo
-
-
-def get_tz_str() -> str:
-    if _tz_str is None:
-        raise RuntimeError("runtime_context not initialized: call set_context() first")
-    return _tz_str
-
-
-def get_stryd_path() -> Path:
-    if _stryd_path is None:
-        raise RuntimeError("runtime_context not initialized: call set_context() first")
-    return _stryd_path
-
-
-def get_garmin_file() -> Path:
-    if _garmin_file is None:
-        raise RuntimeError("runtime_context not initialized: call set_context() first")
-    return _garmin_file

@@ -4,7 +4,7 @@ from typing import Literal
 from textual.app import App
 
 from stryder_core.utils import configure_connection
-from stryder_cli.cli_utils import MenuItem
+
 from stryder_core.bootstrap import bootstrap_context_core, validate_path
 from stryder_core.config import DB_PATH
 from stryder_core.db_schema import connect_db, init_db
@@ -21,6 +21,7 @@ from stryder_tui.screens.reset_db_progress import ResetDBProgress
 from stryder_tui.screens.tui_reports import RunReports
 from stryder_tui.screens.tz_prompt import TzPrompt
 from stryder_tui.screens.view_runs import ViewRuns
+from stryder_tui.tui_utils import MenuItem
 
 
 class StryderTui(App):

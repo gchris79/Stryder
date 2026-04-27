@@ -3,20 +3,13 @@ from datetime import datetime, timezone, date, tzinfo
 from typing import Any, Optional, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import tzlocal
-from stryder_core.runtime_context import get_tz_str, get_tzinfo
+from stryder_core.runtime_context import get_tzinfo
 
 
 def tzinfo_or_none() -> ZoneInfo | None:
     """ Helper, returns tzinfo object from runtime_context or None """
     try:
         return get_tzinfo()
-    except RuntimeError:
-        return None
-
-def tz_str_or_none() -> str | None:
-    """ Helper, returns tzinfo string from runtime_context or None """
-    try:
-        return get_tz_str()
     except RuntimeError:
         return None
 

@@ -1,6 +1,7 @@
 import pandas as pd
 from stryder_core import runtime_context
 from stryder_core.date_utilities import dt_to_string
+from stryder_core.reports import compute_single_run_summary
 from stryder_core.runtime_context import get_tzinfo
 from stryder_core.utils_formatting import fmt_hms, fmt_str_decimals, format_seconds
 
@@ -128,3 +129,20 @@ def format_runs_summary_for_ui(summary_row: dict) -> dict:
         "avg_power": fmt_str_decimals(summary_row["avg_power"]) if summary_row["avg_power"] is not None else "–",
         "avg_hr": fmt_str_decimals(summary_row["avg_hr"]) if summary_row["avg_hr"] is not None else "–",
     }
+
+
+def render_single_run_report(df:pd.DataFrame) -> pd.DataFrame:
+    """ Takes a df, changes the field names to pretty name for displaying """
+    table = compute_single_run_summary(df)
+    # Building the report df
+    row = {
+        "Run ID": table["run_id"],
+        "Duration": fmt_hms(table["duration_sec"]),
+        "Distance (km)": round(table["distance_km"], 2),
+        "Avg Power": round(table["avg_power"], 1),
+        "Avg Ground Time": round(table["ground_time"], 1),
+        "Avg LSS": round(table["stiffness"], 1),
+        "Avg Cadence": round(table["cadence"], 1),
+        "Avg Vertical Osc.": round(table["vertical_oscillation"], 2),
+    }
+    return pd.DataFrame([row])

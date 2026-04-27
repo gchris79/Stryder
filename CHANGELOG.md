@@ -4,6 +4,19 @@ All notable changes to **Stryder** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),  
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.9.0] - 2026-04-27
+
+### 💥 Breaking Changes
+- Removed legacy CLI interface.
+- TUI is now the primary interface for all data import and interaction.
+
+### 🧹 Cleanup
+- Removed CLI-specific code from core.
+- Simplified architecture by eliminating unused interface layer.
+
+---
+
 ## [1.8.2] - 2026-04-27
 - Added Dockerized Stryder Web deployment using Gunicorn and Nginx.
 - Split Django internal database from Stryder domain database.

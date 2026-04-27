@@ -115,9 +115,3 @@ def align_df_to_metric_keys(
     return df.rename(columns=rename_map)
 
 
-def axis_label(metric: dict) -> str:
-    """Return label with unit if available."""
-    unit = metric.get("unit")
-    return f"{metric['label']} ({unit})" if unit else metric["label"]
-
-
